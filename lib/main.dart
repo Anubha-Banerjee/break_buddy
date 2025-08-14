@@ -1,9 +1,77 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:window_manager/window_manager.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-void main() {
+// Create a global instance of the notification plugin
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+FlutterLocalNotificationsPlugin();
+
+Future<void> main() async {
+  // Ensure that Flutter's binding is initialized.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize window manager and local notifications
+  await _initializePlugins();
+
   runApp(ExerciseReminderApp());
 }
+
+// Helper function to initialize all plugins
+Future<void> _initializePlugins() async {
+  // --- Window Manager Initialization ---
+  await windowManager.ensureInitialized();
+
+  // --- FIX 2: Increased window height ---
+  // The initial height is increased to 850 to ensure all buttons are visible on startup.
+  WindowOptions windowOptions = WindowOptions(
+    size: Size(800, 950), // Increased height from 700 to 850
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+
+    // --- FIX 1 & 2: Set minimum size and ensure minimize button is present ---
+    // This prevents the user from making the window too small to use.
+    await windowManager.setMinimumSize(const Size(600, 800));
+    // This explicitly tells the OS that the window should have a minimize button.
+    await windowManager.setMinimizable(true);
+  });
+
+  // --- Notification Initialization ---
+  const AndroidInitializationSettings initializationSettingsAndroid =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
+  final DarwinInitializationSettings initializationSettingsDarwin =
+  DarwinInitializationSettings();
+  final LinuxInitializationSettings initializationSettingsLinux =
+  LinuxInitializationSettings(defaultActionName: 'Open');
+
+  // The WindowsInitializationSettings requires a unique 'appUserModelId'.
+  const WindowsInitializationSettings initializationSettingsWindows =
+  WindowsInitializationSettings(
+    appName: 'Break Buddy',
+    appUserModelId: 'com.example.breakBuddy',
+    // NOTE: You should generate your own unique GUID for your app.
+    guid: 'f5a5a2a2-5b5c-4d5e-8f3a-2b3b4c5c6d7e',
+  );
+
+  // Combine all platform-specific settings
+  final InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsDarwin,
+    macOS: initializationSettingsDarwin,
+    linux: initializationSettingsLinux,
+    windows: initializationSettingsWindows,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+}
+
 
 class ExerciseReminderApp extends StatelessWidget {
   @override
@@ -361,47 +429,76 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _showExerciseReminder() {
+  Future<void> _showSystemNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails('exercise_reminder_channel', 'Exercise Reminders',
+        channelDescription: 'Channel for exercise break reminders',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: false);
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin.show(
+        0, '🎉 Time for Exercise! 🎉', 'Click to open Break Buddy and choose an option.', platformChannelSpecifics,
+        payload: 'item x');
+  }
+
+
+  void _showExerciseReminder() async {
     if (_isReminderShowing) return;
 
     setState(() {
       _isReminderShowing = true;
     });
 
+    await _showSystemNotification();
+    if (!await windowManager.isFocused()) {
+      await windowManager.focus();
+    }
+    await windowManager.setAlwaysOnTop(true);
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        void _handleDismiss() {
+          Navigator.of(context).pop();
+          windowManager.setAlwaysOnTop(false);
+          setState(() {
+            _isReminderShowing = false;
+          });
+        }
+
         return ExerciseReminderDialog(
           selectedInterval: _selectedInterval,
           onDismiss: () {
-            Navigator.of(context).pop();
+            _handleDismiss();
             setState(() {
-              _isReminderShowing = false;
-              // Reset timer to selected interval and restart
               _secondsRemaining = _selectedInterval;
-              // The timer is already running, so it will continue with the new time
+            });
+          },
+          onSnooze1: () {
+            _handleDismiss();
+            setState(() {
+              _secondsRemaining = 60;
             });
           },
           onSnooze5: () {
-            Navigator.of(context).pop();
+            _handleDismiss();
             setState(() {
-              _isReminderShowing = false;
-              _secondsRemaining = 300; // Snooze for 5 minutes
+              _secondsRemaining = 300;
             });
           },
           onSnooze10: () {
-            Navigator.of(context).pop();
+            _handleDismiss();
             setState(() {
-              _isReminderShowing = false;
-              _secondsRemaining = 600; // Snooze for 10 minutes
+              _secondsRemaining = 600;
             });
           },
           onSnooze15: () {
-            Navigator.of(context).pop();
+            _handleDismiss();
             setState(() {
-              _isReminderShowing = false;
-              _secondsRemaining = 900; // Snooze for 15 minutes
+              _secondsRemaining = 900;
             });
           },
         );
@@ -460,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Stay healthy with regular breaks every 30 minutes',
+                  'Stay healthy with regular breaks!',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -660,7 +757,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    'Keep this app running in the background.\nEvery ${(_selectedInterval / 60).toInt()} minutes, you\'ll get a reminder popup to take an exercise break!',
+                    'Keep this app running in the background.\nEvery ${(_selectedInterval / 60).toInt()} minutes, you\'ll get a reminder to take an exercise break!',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -681,6 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
 class ExerciseReminderDialog extends StatelessWidget {
   final int selectedInterval;
   final VoidCallback onDismiss;
+  final VoidCallback onSnooze1;
   final VoidCallback onSnooze5;
   final VoidCallback onSnooze10;
   final VoidCallback onSnooze15;
@@ -689,6 +787,7 @@ class ExerciseReminderDialog extends StatelessWidget {
     Key? key,
     required this.selectedInterval,
     required this.onDismiss,
+    required this.onSnooze1,
     required this.onSnooze5,
     required this.onSnooze10,
     required this.onSnooze15,
@@ -797,6 +896,23 @@ class ExerciseReminderDialog extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 2),
+                          child: OutlinedButton(
+                            onPressed: onSnooze1,
+                            child: Text('1m', style: TextStyle(fontSize: 12)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.orange[600],
+                              side: BorderSide(color: Colors.orange[400]!, width: 1.5),
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       Expanded(
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 2),
