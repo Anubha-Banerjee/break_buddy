@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:window_manager/window_manager.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-// Create a global instance of the notification plugin
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
   // Ensure that Flutter's binding is initialized.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize window manager and local notifications
+  // Initialize window manager
   await _initializePlugins();
 
   runApp(ExerciseReminderApp());
@@ -42,38 +37,11 @@ Future<void> _initializePlugins() async {
     // This explicitly tells the OS that the window should have a minimize button.
     await windowManager.setMinimizable(true);
   });
-
-  // --- Notification Initialization ---
-  const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
-  final DarwinInitializationSettings initializationSettingsDarwin =
-  DarwinInitializationSettings();
-  final LinuxInitializationSettings initializationSettingsLinux =
-  LinuxInitializationSettings(defaultActionName: 'Open');
-
-  // The WindowsInitializationSettings requires a unique 'appUserModelId'.
-  const WindowsInitializationSettings initializationSettingsWindows =
-  WindowsInitializationSettings(
-    appName: 'Break Buddy',
-    appUserModelId: 'com.example.breakBuddy',
-    // NOTE: You should generate your own unique GUID for your app.
-    guid: 'f5a5a2a2-5b5c-4d5e-8f3a-2b3b4c5c6d7e',
-  );
-
-  // Combine all platform-specific settings
-  final InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsDarwin,
-    macOS: initializationSettingsDarwin,
-    linux: initializationSettingsLinux,
-    windows: initializationSettingsWindows,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 }
 
-
 class ExerciseReminderApp extends StatelessWidget {
+  const ExerciseReminderApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -143,7 +111,8 @@ class RealisticHourglassPainter extends CustomPainter {
 
     // Create hourglass frame path
     Path frameTopPath = _createHourglassTop(width, height, centerX, centerY);
-    Path frameBottomPath = _createHourglassBottom(width, height, centerX, centerY);
+    Path frameBottomPath =
+        _createHourglassBottom(width, height, centerX, centerY);
 
     // Draw glass background
     canvas.drawPath(frameTopPath, glassInnerPaint);
@@ -151,12 +120,14 @@ class RealisticHourglassPainter extends CustomPainter {
 
     // Draw sand in bottom chamber (elapsed time)
     if (isActive && progress > 0) {
-      _drawBottomSand(canvas, width, height, centerX, centerY, progress, bottomSandPaint);
+      _drawBottomSand(
+          canvas, width, height, centerX, centerY, progress, bottomSandPaint);
     }
 
     // Draw sand in top chamber (remaining time)
     if (isActive && progress < 1) {
-      _drawTopSand(canvas, width, height, centerX, centerY, progress, topSandPaint);
+      _drawTopSand(
+          canvas, width, height, centerX, centerY, progress, topSandPaint);
     }
 
     // Draw animated falling sand particles
@@ -175,7 +146,8 @@ class RealisticHourglassPainter extends CustomPainter {
     _drawGlassReflection(canvas, width, height, centerX, centerY);
   }
 
-  Path _createHourglassTop(double width, double height, double centerX, double centerY) {
+  Path _createHourglassTop(
+      double width, double height, double centerX, double centerY) {
     Path path = Path();
     double topWidth = width * 0.35;
     double neckWidth = width * 0.08;
@@ -183,15 +155,18 @@ class RealisticHourglassPainter extends CustomPainter {
     path.moveTo(centerX - topWidth, height * 0.15);
     path.lineTo(centerX + topWidth, height * 0.15);
     path.lineTo(centerX + topWidth, height * 0.42);
-    path.quadraticBezierTo(centerX + topWidth * 0.7, height * 0.47, centerX + neckWidth, centerY - 2);
+    path.quadraticBezierTo(centerX + topWidth * 0.7, height * 0.47,
+        centerX + neckWidth, centerY - 2);
     path.lineTo(centerX - neckWidth, centerY - 2);
-    path.quadraticBezierTo(centerX - topWidth * 0.7, height * 0.47, centerX - topWidth, height * 0.42);
+    path.quadraticBezierTo(centerX - topWidth * 0.7, height * 0.47,
+        centerX - topWidth, height * 0.42);
     path.close();
 
     return path;
   }
 
-  Path _createHourglassBottom(double width, double height, double centerX, double centerY) {
+  Path _createHourglassBottom(
+      double width, double height, double centerX, double centerY) {
     Path path = Path();
     double bottomWidth = width * 0.35;
     double neckWidth = width * 0.08;
@@ -199,15 +174,18 @@ class RealisticHourglassPainter extends CustomPainter {
     path.moveTo(centerX - bottomWidth, height * 0.85);
     path.lineTo(centerX + bottomWidth, height * 0.85);
     path.lineTo(centerX + bottomWidth, height * 0.58);
-    path.quadraticBezierTo(centerX + bottomWidth * 0.7, height * 0.53, centerX + neckWidth, centerY + 2);
+    path.quadraticBezierTo(centerX + bottomWidth * 0.7, height * 0.53,
+        centerX + neckWidth, centerY + 2);
     path.lineTo(centerX - neckWidth, centerY + 2);
-    path.quadraticBezierTo(centerX - bottomWidth * 0.7, height * 0.53, centerX - bottomWidth, height * 0.58);
+    path.quadraticBezierTo(centerX - bottomWidth * 0.7, height * 0.53,
+        centerX - bottomWidth, height * 0.58);
     path.close();
 
     return path;
   }
 
-  void _drawBottomSand(Canvas canvas, double width, double height, double centerX, double centerY, double progress, Paint paint) {
+  void _drawBottomSand(Canvas canvas, double width, double height,
+      double centerX, double centerY, double progress, Paint paint) {
     double maxSandHeight = height * 0.27;
     double currentSandHeight = maxSandHeight * progress;
     double sandTop = height * 0.85 - currentSandHeight;
@@ -215,7 +193,8 @@ class RealisticHourglassPainter extends CustomPainter {
     // Create realistic sand mound shape
     Path sandPath = Path();
     double bottomWidth = width * 0.35;
-    double sandWidth = bottomWidth * (0.3 + 0.7 * progress); // Sand spreads as it accumulates
+    double sandWidth =
+        bottomWidth * (0.3 + 0.7 * progress); // Sand spreads as it accumulates
 
     // Create curved sand surface
     sandPath.moveTo(centerX - bottomWidth, height * 0.85);
@@ -223,22 +202,27 @@ class RealisticHourglassPainter extends CustomPainter {
 
     if (progress < 0.7) {
       // Cone shape when sand is building up
-      sandPath.lineTo(centerX + sandWidth * 0.8, sandTop + currentSandHeight * 0.3);
-      sandPath.quadraticBezierTo(centerX, sandTop, centerX - sandWidth * 0.8, sandTop + currentSandHeight * 0.3);
+      sandPath.lineTo(
+          centerX + sandWidth * 0.8, sandTop + currentSandHeight * 0.3);
+      sandPath.quadraticBezierTo(centerX, sandTop, centerX - sandWidth * 0.8,
+          sandTop + currentSandHeight * 0.3);
     } else {
       // Flatter surface when chamber is filling
       sandPath.lineTo(centerX + sandWidth, sandTop + currentSandHeight * 0.1);
-      sandPath.quadraticBezierTo(centerX, sandTop - currentSandHeight * 0.05, centerX - sandWidth, sandTop + currentSandHeight * 0.1);
+      sandPath.quadraticBezierTo(centerX, sandTop - currentSandHeight * 0.05,
+          centerX - sandWidth, sandTop + currentSandHeight * 0.1);
     }
 
     sandPath.close();
     canvas.drawPath(sandPath, paint);
 
     // Add sand texture with small particles
-    _drawSandTexture(canvas, centerX, sandTop, sandWidth, currentSandHeight, false);
+    _drawSandTexture(
+        canvas, centerX, sandTop, sandWidth, currentSandHeight, false);
   }
 
-  void _drawTopSand(Canvas canvas, double width, double height, double centerX, double centerY, double progress, Paint paint) {
+  void _drawTopSand(Canvas canvas, double width, double height, double centerX,
+      double centerY, double progress, Paint paint) {
     double remainingProgress = 1 - progress;
     double maxSandHeight = height * 0.27;
     double currentSandHeight = maxSandHeight * remainingProgress;
@@ -253,13 +237,13 @@ class RealisticHourglassPainter extends CustomPainter {
 
     // Create funnel effect near the neck
     if (remainingProgress > 0.3) {
-      sandPath.lineTo(centerX + topWidth * remainingProgress, height * 0.15 + currentSandHeight);
+      sandPath.lineTo(centerX + topWidth * remainingProgress,
+          height * 0.15 + currentSandHeight);
       sandPath.quadraticBezierTo(
           centerX,
           height * 0.15 + currentSandHeight + height * 0.05,
           centerX - topWidth * remainingProgress,
-          height * 0.15 + currentSandHeight
-      );
+          height * 0.15 + currentSandHeight);
     } else {
       // Funnel shape when sand is low
       double funnelWidth = width * 0.25 * remainingProgress;
@@ -273,10 +257,12 @@ class RealisticHourglassPainter extends CustomPainter {
     canvas.drawPath(sandPath, paint);
 
     // Add sand texture
-    _drawSandTexture(canvas, centerX, height * 0.15, topWidth * 2, currentSandHeight, true);
+    _drawSandTexture(
+        canvas, centerX, height * 0.15, topWidth * 2, currentSandHeight, true);
   }
 
-  void _drawFallingSand(Canvas canvas, double width, double height, double centerX, double centerY, double time) {
+  void _drawFallingSand(Canvas canvas, double width, double height,
+      double centerX, double centerY, double time) {
     Paint sandParticlePaint = Paint()
       ..color = Colors.amber[400]!
       ..style = PaintingStyle.fill;
@@ -311,14 +297,19 @@ class RealisticHourglassPainter extends CustomPainter {
     canvas.drawPath(streamPath, streamPaint);
   }
 
-  void _drawSandTexture(Canvas canvas, double centerX, double top, double width, double height, bool isTop) {
+  void _drawSandTexture(Canvas canvas, double centerX, double top, double width,
+      double height, bool isTop) {
     Paint texturePaint = Paint()
-      ..color = isTop ? Colors.orange[800]!.withOpacity(0.3) : Colors.brown[700]!.withOpacity(0.3)
+      ..color = isTop
+          ? Colors.orange[800]!.withOpacity(0.3)
+          : Colors.brown[700]!.withOpacity(0.3)
       ..style = PaintingStyle.fill;
 
     // Add small sand grain details
     for (int i = 0; i < (width * height / 50).round(); i++) {
-      double x = centerX - width + (width * 2 * (i * 0.618034) % 1); // Golden ratio distribution
+      double x = centerX -
+          width +
+          (width * 2 * (i * 0.618034) % 1); // Golden ratio distribution
       double y = top + (height * (i * 0.7548776) % 1);
 
       if (x > centerX - width && x < centerX + width) {
@@ -327,28 +318,38 @@ class RealisticHourglassPainter extends CustomPainter {
     }
   }
 
-  void _drawWoodenFrame(Canvas canvas, double width, double height, double centerX) {
+  void _drawWoodenFrame(
+      Canvas canvas, double width, double height, double centerX) {
     Paint woodPaint = Paint()
       ..color = Colors.brown[600]!
       ..style = PaintingStyle.fill;
 
     // Top frame
-    Rect topFrame = Rect.fromLTWH(centerX - width * 0.4, height * 0.1, width * 0.8, height * 0.08);
-    canvas.drawRRect(RRect.fromRectAndRadius(topFrame, Radius.circular(4)), woodPaint);
+    Rect topFrame = Rect.fromLTWH(
+        centerX - width * 0.4, height * 0.1, width * 0.8, height * 0.08);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(topFrame, Radius.circular(4)), woodPaint);
 
     // Bottom frame
-    Rect bottomFrame = Rect.fromLTWH(centerX - width * 0.4, height * 0.82, width * 0.8, height * 0.08);
-    canvas.drawRRect(RRect.fromRectAndRadius(bottomFrame, Radius.circular(4)), woodPaint);
+    Rect bottomFrame = Rect.fromLTWH(
+        centerX - width * 0.4, height * 0.82, width * 0.8, height * 0.08);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(bottomFrame, Radius.circular(4)), woodPaint);
 
     // Side supports
-    Rect leftSupport = Rect.fromLTWH(centerX - width * 0.42, height * 0.15, width * 0.04, height * 0.7);
-    Rect rightSupport = Rect.fromLTWH(centerX + width * 0.38, height * 0.15, width * 0.04, height * 0.7);
+    Rect leftSupport = Rect.fromLTWH(
+        centerX - width * 0.42, height * 0.15, width * 0.04, height * 0.7);
+    Rect rightSupport = Rect.fromLTWH(
+        centerX + width * 0.38, height * 0.15, width * 0.04, height * 0.7);
 
-    canvas.drawRRect(RRect.fromRectAndRadius(leftSupport, Radius.circular(2)), woodPaint);
-    canvas.drawRRect(RRect.fromRectAndRadius(rightSupport, Radius.circular(2)), woodPaint);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(leftSupport, Radius.circular(2)), woodPaint);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(rightSupport, Radius.circular(2)), woodPaint);
   }
 
-  void _drawGlassReflection(Canvas canvas, double width, double height, double centerX, double centerY) {
+  void _drawGlassReflection(Canvas canvas, double width, double height,
+      double centerX, double centerY) {
     Paint reflectionPaint = Paint()
       ..color = Colors.white.withOpacity(0.2)
       ..style = PaintingStyle.fill;
@@ -379,6 +380,8 @@ class RealisticHourglassPainter extends CustomPainter {
 }
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -429,21 +432,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _showSystemNotification() async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-    AndroidNotificationDetails('exercise_reminder_channel', 'Exercise Reminders',
-        channelDescription: 'Channel for exercise break reminders',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: false);
-    const NotificationDetails platformChannelSpecifics =
-    NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(
-        0, '🎉 Time for Exercise! 🎉', 'Click to open Break Buddy and choose an option.', platformChannelSpecifics,
-        payload: 'item x');
-  }
-
-
   void _showExerciseReminder() async {
     if (_isReminderShowing) return;
 
@@ -451,7 +439,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _isReminderShowing = true;
     });
 
-    await _showSystemNotification();
     if (!await windowManager.isFocused()) {
       await windowManager.focus();
     }
@@ -461,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        void _handleDismiss() {
+        void handleDismiss() {
           Navigator.of(context).pop();
           windowManager.setAlwaysOnTop(false);
           setState(() {
@@ -472,31 +459,31 @@ class _HomeScreenState extends State<HomeScreen> {
         return ExerciseReminderDialog(
           selectedInterval: _selectedInterval,
           onDismiss: () {
-            _handleDismiss();
+            handleDismiss();
             setState(() {
               _secondsRemaining = _selectedInterval;
             });
           },
           onSnooze1: () {
-            _handleDismiss();
+            handleDismiss();
             setState(() {
               _secondsRemaining = 60;
             });
           },
           onSnooze5: () {
-            _handleDismiss();
+            handleDismiss();
             setState(() {
               _secondsRemaining = 300;
             });
           },
           onSnooze10: () {
-            _handleDismiss();
+            handleDismiss();
             setState(() {
               _secondsRemaining = 600;
             });
           },
           onSnooze15: () {
-            _handleDismiss();
+            handleDismiss();
             setState(() {
               _secondsRemaining = 900;
             });
@@ -505,6 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
   String _formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int remainingSeconds = seconds % 60;
@@ -547,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 30),
                 Text(
-                  'Desktop Exercise Reminder',
+                  'Break Buddy',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -591,24 +579,30 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
                               child: ElevatedButton(
-                                onPressed: _isTimerActive ? null : () {
-                                  setState(() {
-                                    _selectedInterval = entry.value;
-                                    _secondsRemaining = entry.value;
-                                  });
-                                },
-                                child: Text(
-                                  entry.key,
-                                  style: TextStyle(fontSize: 12),
-                                  textAlign: TextAlign.center,
-                                ),
+                                onPressed: _isTimerActive
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _selectedInterval = entry.value;
+                                          _secondsRemaining = entry.value;
+                                        });
+                                      },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: isSelected ? Colors.blue[600] : Colors.grey[300],
-                                  foregroundColor: isSelected ? Colors.white : Colors.grey[700],
+                                  backgroundColor: isSelected
+                                      ? Colors.blue[600]
+                                      : Colors.grey[300],
+                                  foregroundColor: isSelected
+                                      ? Colors.white
+                                      : Colors.grey[700],
                                   padding: EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
+                                ),
+                                child: Text(
+                                  entry.key,
+                                  style: TextStyle(fontSize: 12),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
@@ -650,14 +644,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           // Animated Hourglass
-                          Container(
+                          SizedBox(
                             width: 100,
                             height: 120,
                             child: CustomPaint(
                               painter: RealisticHourglassPainter(
-                                progress: _isTimerActive ? 1 - (_secondsRemaining / _selectedInterval) : 0,
+                                progress: _isTimerActive
+                                    ? 1 -
+                                        (_secondsRemaining / _selectedInterval)
+                                    : 0,
                                 isActive: _isTimerActive,
-                                animationTime: _isTimerActive ? DateTime.now().millisecondsSinceEpoch / 1000 : 0,
+                                animationTime: _isTimerActive
+                                    ? DateTime.now().millisecondsSinceEpoch /
+                                        1000
+                                    : 0,
                               ),
                             ),
                           ),
@@ -695,7 +695,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         LinearProgressIndicator(
                           value: 1 - (_secondsRemaining / _selectedInterval),
                           backgroundColor: Colors.grey[300],
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
                         ),
                     ],
                   ),
@@ -711,7 +712,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                         textStyle: TextStyle(fontSize: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -725,7 +727,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                         textStyle: TextStyle(fontSize: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -738,7 +741,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ElevatedButton.icon(
                   onPressed: _showExerciseReminder,
                   icon: Icon(Icons.preview),
-                  label: Text('Test Reminder Popup'),
+                  label: Text('Take a break now!'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
@@ -784,14 +787,14 @@ class ExerciseReminderDialog extends StatelessWidget {
   final VoidCallback onSnooze15;
 
   const ExerciseReminderDialog({
-    Key? key,
+    super.key,
     required this.selectedInterval,
     required this.onDismiss,
     required this.onSnooze1,
     required this.onSnooze5,
     required this.onSnooze10,
     required this.onSnooze15,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -800,7 +803,8 @@ class ExerciseReminderDialog extends StatelessWidget {
       elevation: 20,
       child: Container(
         width: 380,
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
@@ -860,7 +864,8 @@ class ExerciseReminderDialog extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.lightbulb, color: Colors.orange[600], size: 20),
+                        Icon(Icons.lightbulb,
+                            color: Colors.orange[600], size: 20),
                         SizedBox(width: 8),
                         Text(
                           'Quick Exercise Ideas:',
@@ -901,15 +906,16 @@ class ExerciseReminderDialog extends StatelessWidget {
                           padding: EdgeInsets.symmetric(horizontal: 2),
                           child: OutlinedButton(
                             onPressed: onSnooze1,
-                            child: Text('1m', style: TextStyle(fontSize: 12)),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.orange[600],
-                              side: BorderSide(color: Colors.orange[400]!, width: 1.5),
+                              side: BorderSide(
+                                  color: Colors.orange[400]!, width: 1.5),
                               padding: EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
+                            child: Text('1m', style: TextStyle(fontSize: 12)),
                           ),
                         ),
                       ),
@@ -918,15 +924,16 @@ class ExerciseReminderDialog extends StatelessWidget {
                           padding: EdgeInsets.symmetric(horizontal: 2),
                           child: OutlinedButton(
                             onPressed: onSnooze5,
-                            child: Text('5m', style: TextStyle(fontSize: 12)),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.orange[600],
-                              side: BorderSide(color: Colors.orange[400]!, width: 1.5),
+                              side: BorderSide(
+                                  color: Colors.orange[400]!, width: 1.5),
                               padding: EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
+                            child: Text('5m', style: TextStyle(fontSize: 12)),
                           ),
                         ),
                       ),
@@ -935,15 +942,16 @@ class ExerciseReminderDialog extends StatelessWidget {
                           padding: EdgeInsets.symmetric(horizontal: 2),
                           child: OutlinedButton(
                             onPressed: onSnooze10,
-                            child: Text('10m', style: TextStyle(fontSize: 12)),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.orange[600],
-                              side: BorderSide(color: Colors.orange[400]!, width: 1.5),
+                              side: BorderSide(
+                                  color: Colors.orange[400]!, width: 1.5),
                               padding: EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
+                            child: Text('10m', style: TextStyle(fontSize: 12)),
                           ),
                         ),
                       ),
@@ -952,15 +960,16 @@ class ExerciseReminderDialog extends StatelessWidget {
                           padding: EdgeInsets.symmetric(horizontal: 2),
                           child: OutlinedButton(
                             onPressed: onSnooze15,
-                            child: Text('15m', style: TextStyle(fontSize: 12)),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.orange[600],
-                              side: BorderSide(color: Colors.orange[400]!, width: 1.5),
+                              side: BorderSide(
+                                  color: Colors.orange[400]!, width: 1.5),
                               padding: EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
+                            child: Text('15m', style: TextStyle(fontSize: 12)),
                           ),
                         ),
                       ),

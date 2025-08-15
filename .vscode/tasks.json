@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Flutter Clean",
+            "type": "shell",
+            "command": "flutter",
+            "args": ["clean"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Flutter Get",
+            "type": "shell",
+            "command": "flutter",
+            "args": ["pub", "get"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Flutter Windows",
+            "type": "shell",
+            "command": "flutter",
+            "args": [
+                "build",
+                "windows",
+                "--release"
+            ],
+            "problemMatcher": [
+                "$dart-build_runner"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "Full Build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Flutter Clean",
+                "Flutter Get",
+                "Build Flutter Windows"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

@@ -13,8 +13,6 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   window_manager: ^0.5.1
-  flutter_local_notifications: ^19.4.0
-  flutter_local_notifications_windows: ^1.0.2
 
 dev_dependencies:
   flutter_test:
