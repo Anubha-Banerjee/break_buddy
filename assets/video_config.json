@@ -1,0 +1,98 @@
+[
+  {
+    "thumbnailPath": "assets/thumbnails/squats.jpg",
+    "videoPath": "assets/videos/squats.mp4",
+    "duration": 2,
+    "taskName": "squats"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/hoola_hooping.jpg",
+    "videoPath": "assets/videos/hoola_hooping.mp4",
+    "duration": 2,
+    "taskName": "hoola_hooping"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/side_lifts.jpg",
+    "videoPath": "assets/videos/side_lifts.mp4",
+    "duration": 2,
+    "taskName": "side_lifts"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/dancing.jpg",
+    "videoPath": "assets/videos/dancing.mp4",
+    "duration": 2,
+    "taskName": "dancing"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/side_leg_raises.jpg",
+    "videoPath": "assets/videos/side_leg_raises.mp4",
+    "duration": 2,
+    "taskName": "side_leg_raises"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/donkey_kicks.jpg",
+    "videoPath": "assets/videos/donkey_kicks.mp4",
+    "duration": 2,
+    "taskName": "donkey_kicks"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/tricep_stretches.jpg",
+    "videoPath": "assets/videos/tricep_stretches.mp4",
+    "duration": 2,
+    "taskName": "tricep_stretches"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/lunges.jpg",
+    "videoPath": "assets/videos/lunges.mp4",
+    "duration": 2,
+    "taskName": "lunges"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/nature.jpg",
+    "videoPath": "assets/videos/nature.mp4",
+    "duration": 2,
+    "taskName": "nature"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/bent_rows.jpg",
+    "videoPath": "assets/videos/bent_rows.mp4",
+    "duration": 2,
+    "taskName": "bent_rows"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/shoulder_exercise.jpg",
+    "videoPath": "assets/videos/shoulder_exercise.mp4",
+    "duration": 2,
+    "taskName": "shoulder_exercise"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/pushups.jpg",
+    "videoPath": "assets/videos/pushups.mp4",
+    "duration": 2,
+    "taskName": "pushups"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/walking.jpg",
+    "videoPath": "assets/videos/walking.mp4",
+    "duration": 2,
+    "taskName": "walking"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/leg_raises.jpg",
+    "videoPath": "assets/videos/leg_raises.mp4",
+    "duration": 2,
+    "taskName": "leg_raises"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/burpees.jpg",
+    "videoPath": "assets/videos/burpees.mp4",
+    "duration": 2,
+    "taskName": "burpees"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/stretches.jpg",
+    "videoPath": "assets/videos/stretches.mp4",
+    "duration": 2,
+    "taskName": "stretches"
+  }
+]

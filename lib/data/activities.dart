@@ -18,7 +18,7 @@ final List<Activity> predefinedActivities = [
     icon: Icons.music_note,
   ),
   Activity(
-    id: 'hoola',
+    id: 'hoola_hooping',
     name: 'Hoola Hooping',
     icon: Icons.circle_outlined,
   ),
@@ -28,12 +28,12 @@ final List<Activity> predefinedActivities = [
     icon: Icons.fitness_center,
   ),
   Activity(
-    id: 'shoulder',
+    id: 'shoulder_exercise',
     name: 'Dumbbell Shoulder Exercise',
     icon: Icons.accessibility,
   ),
   Activity(
-    id: 'tricep',
+    id: 'tricep_stretches',
     name: 'Dumbbell Tricep Stretches',
     icon: Icons.sports_gymnastics,
   ),
@@ -53,13 +53,33 @@ final List<Activity> predefinedActivities = [
     icon: Icons.airline_seat_flat,
   ),
   Activity(
-    id: 'snacking',
-    name: 'Snacking',
-    icon: Icons.restaurant,
+    id: 'nature',
+    name: 'Nature Walk',
+    icon: Icons.nature,
   ),
   Activity(
-    id: 'nature',
-    name: 'Nature',
-    icon: Icons.nature,
+    id: 'burpees',
+    name: 'Burpees',
+    icon: Icons.sports_martial_arts,
+  ),
+  Activity(
+    id: 'donkey_kicks',
+    name: 'Donkey Kicks',
+    icon: Icons.sports_gymnastics,
+  ),
+  Activity(
+    id: 'leg_raises',
+    name: 'Leg Raises',
+    icon: Icons.accessibility_new,
+  ),
+  Activity(
+    id: 'lunges',
+    name: 'Lunges',
+    icon: Icons.sports_martial_arts,
+  ),
+  Activity(
+    id: 'side_leg_raises',
+    name: 'Side Leg Raises',
+    icon: Icons.sports_gymnastics,
   ),
 ];

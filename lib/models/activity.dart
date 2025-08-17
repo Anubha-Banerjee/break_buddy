@@ -4,12 +4,16 @@ class Activity {
   final String id;
   final String name;
   final IconData icon;
+  final String? videoPath;
+  final String? thumbnailPath;
   int count;
 
   Activity({
     required this.id,
     required this.name,
     required this.icon,
+    this.videoPath,
+    this.thumbnailPath,
     this.count = 0,
   });
 

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/activity.dart';
+import '../models/activity_video.dart';
+import '../widgets/video_player_dialog.dart';
 
 class ActivityTile extends StatefulWidget {
   final Activity activity;
   final Function(int) onCountChanged;
 
   const ActivityTile({
-    Key? key,
+    super.key,
     required this.activity,
     required this.onCountChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<ActivityTile> createState() => _ActivityTileState();
@@ -48,10 +50,53 @@ class _ActivityTileState extends State<ActivityTile> {
               ),
             ),
             const SizedBox(height: 2),
-            Icon(
-              widget.activity.icon,
-              size: 24,
-              color: Colors.blue,
+            GestureDetector(
+              onTap: () async {
+                final video = VideoConfig.getVideoForTask(widget.activity.id);
+                if (video != null) {
+                  print(
+                      'Playing video: ${video.videoPath} for ${video.duration} seconds');
+                  await showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => VideoPlayerDialog(
+                      videoPath: video.videoPath,
+                      durationInSeconds: video.duration,
+                      repeatCount: widget.activity.count,
+                      onComplete: () => Navigator.of(context).pop(),
+                    ),
+                  );
+                } else {
+                  print('No video found for activity: ${widget.activity.id}');
+                }
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  image: VideoConfig.getVideoForTask(widget.activity.id)
+                              ?.thumbnailPath !=
+                          null
+                      ? DecorationImage(
+                          image: AssetImage(
+                            VideoConfig.getVideoForTask(widget.activity.id)!
+                                .thumbnailPath,
+                          ),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: VideoConfig.getVideoForTask(widget.activity.id)
+                            ?.thumbnailPath ==
+                        null
+                    ? Icon(
+                        widget.activity.icon,
+                        size: 24,
+                        color: Colors.blue,
+                      )
+                    : null,
+              ),
             ),
             if (_isHovered) ...[
               const SizedBox(height: 4),

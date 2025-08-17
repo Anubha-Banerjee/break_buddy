@@ -1,11 +1,34 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:window_manager/window_manager.dart';
+import 'package:media_kit/media_kit.dart';
 import 'dialogs/exercise_reminder_dialog.dart';
+import 'models/activity_video.dart';
+import 'services/video_server.dart';
+
+// Global video server instance
+final videoServer = VideoServer();
 
 Future<void> main() async {
   // Ensure that Flutter's binding is initialized.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize media_kit
+  MediaKit.ensureInitialized();
+
+  // Start video server
+  try {
+    await videoServer.start('D:\\AndroidProjects\\break_buddy\\assets');
+  } catch (e) {
+    print('Failed to start video server: $e');
+  }
+
+  // Initialize video configuration
+  try {
+    await VideoConfig.initialize(videoServer);
+  } catch (e) {
+    print('Failed to initialize video config: $e');
+  }
 
   // Initialize window manager
   await _initializePlugins();
@@ -40,8 +63,20 @@ Future<void> _initializePlugins() async {
   });
 }
 
-class ExerciseReminderApp extends StatelessWidget {
+class ExerciseReminderApp extends StatefulWidget {
   const ExerciseReminderApp({super.key});
+
+  @override
+  State<ExerciseReminderApp> createState() => _ExerciseReminderAppState();
+}
+
+class _ExerciseReminderAppState extends State<ExerciseReminderApp> {
+  @override
+  void dispose() {
+    // Stop the video server when the app is closed
+    videoServer.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

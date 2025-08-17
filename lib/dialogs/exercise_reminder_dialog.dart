@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/activity.dart';
+import '../models/activity_video.dart';
 import '../widgets/activity_grid.dart';
+import '../widgets/video_player_dialog.dart';
 import '../data/activities.dart';
 
 class ExerciseReminderDialog extends StatefulWidget {
@@ -12,14 +14,14 @@ class ExerciseReminderDialog extends StatefulWidget {
   final VoidCallback onSnooze15;
 
   const ExerciseReminderDialog({
-    Key? key,
+    super.key,
     required this.selectedInterval,
     required this.onDismiss,
     required this.onSnooze1,
     required this.onSnooze5,
     required this.onSnooze10,
     required this.onSnooze15,
-  }) : super(key: key);
+  });
 
   @override
   _ExerciseReminderDialogState createState() => _ExerciseReminderDialogState();
@@ -27,6 +29,8 @@ class ExerciseReminderDialog extends StatefulWidget {
 
 class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   late List<Activity> activities;
+  int _currentActivityIndex = -1;
+  bool _isPlayingSequence = false;
 
   @override
   void initState() {
@@ -41,6 +45,94 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
         activities[index] = activities[index].copyWith(count: newCount);
       }
     });
+  }
+
+  Future<void> _playNextVideo() async {
+    if (!mounted || !_isPlayingSequence) {
+      print(
+          'Not playing next video: mounted=$mounted, isPlayingSequence=$_isPlayingSequence');
+      return;
+    }
+
+    // Find next activity with count > 0
+    do {
+      _currentActivityIndex++;
+      if (_currentActivityIndex < activities.length) {
+        print(
+            'Checking activity: ${activities[_currentActivityIndex].name} (count: ${activities[_currentActivityIndex].count})');
+      }
+    } while (_currentActivityIndex < activities.length &&
+        (activities[_currentActivityIndex].count == 0 ||
+            VideoConfig.getVideoForTask(activities[_currentActivityIndex].id) ==
+                null));
+
+    if (_currentActivityIndex < activities.length) {
+      final activity = activities[_currentActivityIndex];
+      final video = VideoConfig.getVideoForTask(activity.id);
+
+      if (video != null) {
+        print(
+            'Playing video ${_currentActivityIndex + 1} of ${activities.length}: ${activity.name} (${activity.count} times)');
+
+        try {
+          BuildContext dialogContext = context;
+          await showDialog(
+            context: dialogContext,
+            barrierDismissible: false,
+            useSafeArea: false,
+            builder: (BuildContext context) => VideoPlayerDialog(
+              videoPath: video.videoPath,
+              durationInSeconds: video.duration,
+              repeatCount: activity.count,
+              onComplete: () {
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  // Schedule the next video after a short delay
+                  if (_isPlayingSequence) {
+                    Future.delayed(
+                        const Duration(milliseconds: 500), _playNextVideo);
+                  }
+                }
+              },
+            ),
+          );
+        } catch (e) {
+          print('Error showing video dialog: $e');
+        }
+      } else {
+        print('No video found for activity: ${activity.name}');
+        // Skip activities without videos
+        if (_isPlayingSequence) {
+          _playNextVideo();
+        }
+      }
+    } else {
+      print('All videos have been played');
+      // All videos have been played
+      setState(() {
+        _isPlayingSequence = false;
+        _currentActivityIndex = -1;
+      });
+    }
+  }
+
+  void _startActivitySequence() {
+    print('Start Activities button clicked');
+    print('Current activities and their counts:');
+    for (var activity in activities) {
+      print('${activity.name}: ${activity.count}');
+    }
+
+    if (!_isPlayingSequence) {
+      print('Starting activity sequence');
+      setState(() {
+        _isPlayingSequence = true;
+        _currentActivityIndex = -1;
+      });
+      _playNextVideo();
+    } else {
+      print('Sequence already in progress');
+    }
   }
 
   @override
@@ -122,21 +214,40 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     ],
                   ),
                   const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: widget.onDismiss,
-                      icon: const Icon(Icons.check_circle, size: 18),
-                      label: const Text('Done! Reset timer'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[600],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _startActivitySequence,
+                          icon: const Icon(Icons.play_circle, size: 18),
+                          label: const Text('Start Activities'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[600],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: widget.onDismiss,
+                          icon: const Icon(Icons.check_circle, size: 18),
+                          label: const Text('Done! Reset timer'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[600],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
