@@ -5,6 +5,8 @@ import 'package:media_kit/media_kit.dart';
 import 'dialogs/exercise_reminder_dialog.dart';
 import 'models/activity_video.dart';
 import 'services/video_server.dart';
+import 'dart:io'; // For Directory
+import 'package:path/path.dart' as p; // For p.join
 
 // Global video server instance
 final videoServer = VideoServer();
@@ -18,7 +20,14 @@ Future<void> main() async {
 
   // Start video server
   try {
-    await videoServer.start('D:\\AndroidProjects\\break_buddy\\assets');
+
+    // Get the current working directory (usually the project root when running from IDE)
+    String projectRoot = Directory.current.path;
+    String assetsPath = p.join(projectRoot, 'assets');
+    print('Attempting to serve assets from: $assetsPath'); // For debugging
+    await videoServer.start(assetsPath);
+
+    //await videoServer.start('D:\\AndroidProjects\\break_buddy\\assets');
   } catch (e) {
     print('Failed to start video server: $e');
   }

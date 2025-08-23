@@ -61,7 +61,7 @@ $videoConfig = @{
         StartTime = 0
     }
     "HipRaises.mp4" = @{
-        TaskName = "hoola_hooping"  # Using hip raises as alternative for hoola hooping
+        TaskName = "hip_raises"
         Duration = 2
         StartTime = 0
     }
@@ -95,9 +95,9 @@ $videoConfig = @{
         Duration = 2
         StartTime = 0
     }
-    "SideLegRaises.mp4" = @{
-        TaskName = "side_leg_raises"  # Additional exercise
-        Duration = 2
+    "SideLegRaisesFull.mp4" = @{
+        TaskName = "SideLegRaisesFull"  # Additional exercise
+        Duration = 29
         StartTime = 0
     }
 }

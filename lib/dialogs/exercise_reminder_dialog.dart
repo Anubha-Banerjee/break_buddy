@@ -204,6 +204,14 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
+                  const Text(
+                    'Remind me again in:',
+                    style: TextStyle(
+                      fontSize: 16, // Adjust style as needed
+                      fontWeight: FontWeight.w600, // Optional: make it a bit bolder
+                      color: Colors.black54, // Adjust color
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
