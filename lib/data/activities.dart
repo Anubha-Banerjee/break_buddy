@@ -8,19 +8,36 @@ final List<Activity> predefinedActivities = [
     icon: Icons.directions_walk,
   ),
   Activity(
+    id: 'SideLegRaisesFull',
+    name: 'Side Leg Raises',
+    icon: Icons.sports_gymnastics,
+  ),
+  Activity(
+    id: 'hip_raises',
+    name: 'Hip Raises',
+    icon: Icons.circle_outlined,
+  ),
+  Activity(
+    id: 'leg_raises',
+    name: 'Leg Raises',
+    icon: Icons.accessibility_new,
+  ),
+
+  Activity(
+    id: 'donkey_kicks',
+    name: 'Donkey Kicks',
+    icon: Icons.sports_gymnastics,
+  ),
+
+  Activity(
     id: 'stretches',
-    name: 'Stretches',
+    name: 'Bicycle kicks',
     icon: Icons.accessibility_new,
   ),
   Activity(
     id: 'dancing',
-    name: 'Dancing',
+    name: 'Jumping jacks',
     icon: Icons.music_note,
-  ),
-  Activity(
-    id: 'hoola_hooping',
-    name: 'Hoola Hooping',
-    icon: Icons.circle_outlined,
   ),
   Activity(
     id: 'bent_rows',
@@ -58,28 +75,8 @@ final List<Activity> predefinedActivities = [
     icon: Icons.nature,
   ),
   Activity(
-    id: 'burpees',
-    name: 'Burpees',
-    icon: Icons.sports_martial_arts,
-  ),
-  Activity(
-    id: 'donkey_kicks',
-    name: 'Donkey Kicks',
-    icon: Icons.sports_gymnastics,
-  ),
-  Activity(
-    id: 'leg_raises',
-    name: 'Leg Raises',
-    icon: Icons.accessibility_new,
-  ),
-  Activity(
     id: 'lunges',
     name: 'Lunges',
     icon: Icons.sports_martial_arts,
-  ),
-  Activity(
-    id: 'side_leg_raises',
-    name: 'Side Leg Raises',
-    icon: Icons.sports_gymnastics,
   ),
 ];

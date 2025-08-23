@@ -6,10 +6,10 @@
     "taskName": "squats"
   },
   {
-    "thumbnailPath": "assets/thumbnails/hoola_hooping.jpg",
+    "thumbnailPath": "assets/thumbnails/hip_raises.jpg",
     "videoPath": "assets/videos/hoola_hooping.mp4",
     "duration": 2,
-    "taskName": "hoola_hooping"
+    "taskName": "hip_raises"
   },
   {
     "thumbnailPath": "assets/thumbnails/side_lifts.jpg",
@@ -25,9 +25,9 @@
   },
   {
     "thumbnailPath": "assets/thumbnails/side_leg_raises.jpg",
-    "videoPath": "assets/videos/side_leg_raises.mp4",
-    "duration": 2,
-    "taskName": "side_leg_raises"
+    "videoPath": "assets/videos/SideLegRaisesFull.mp4",
+    "duration": 29,
+    "taskName": "SideLegRaisesFull"
   },
   {
     "thumbnailPath": "assets/thumbnails/donkey_kicks.jpg",

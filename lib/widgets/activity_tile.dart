@@ -71,8 +71,8 @@ class _ActivityTileState extends State<ActivityTile> {
                 }
               },
               child: Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   image: VideoConfig.getVideoForTask(widget.activity.id)
@@ -111,7 +111,7 @@ class _ActivityTileState extends State<ActivityTile> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.remove, size: 16),
+                  icon: const Icon(Icons.remove, size: 32),
                   onPressed: widget.activity.count > 0
                       ? () => widget.onCountChanged(widget.activity.count - 1)
                       : null,
@@ -122,7 +122,7 @@ class _ActivityTileState extends State<ActivityTile> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(Icons.add, size: 32),
                   onPressed: () =>
                       widget.onCountChanged(widget.activity.count + 1),
                   padding: EdgeInsets.zero,
