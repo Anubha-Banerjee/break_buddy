@@ -142,7 +142,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       elevation: 20,
       child: Container(
         width: 800, // Wider to show more items per row
-        height: 700, // Taller to fit all content
+        height: 800, // Taller to fit all content
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
@@ -174,7 +174,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    '🎉 Time for Exercise! 🎉',
+                    '🎉 Time for a Break! 🎉',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,

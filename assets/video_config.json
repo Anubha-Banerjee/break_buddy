@@ -6,6 +6,18 @@
     "taskName": "squats"
   },
   {
+    "thumbnailPath": "assets/thumbnails/squat_simple.jpg",
+    "videoPath": "assets/videos/squat_simple.mp4",
+    "duration": 2,
+    "taskName": "squat_simple"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/lunge_simple.jpg",
+    "videoPath": "assets/videos/lunge_simple.mp4",
+    "duration": 2,
+    "taskName": "lunge_simple"
+  },
+  {
     "thumbnailPath": "assets/thumbnails/hip_raises.jpg",
     "videoPath": "assets/videos/hoola_hooping.mp4",
     "duration": 2,
@@ -94,5 +106,29 @@
     "videoPath": "assets/videos/stretches.mp4",
     "duration": 2,
     "taskName": "stretches"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/shoulder_raise.jpg",
+    "videoPath": "assets/videos/shoulder_raise.mp4",
+    "duration": 4,
+    "taskName": "shoulder_raise"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/side_rows.jpg",
+    "videoPath": "assets/videos/side_rows.mp4",
+    "duration": 3,
+    "taskName": "side_rows"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/tricep_extension.jpg",
+    "videoPath": "assets/videos/tricep_extension.mp4",
+    "duration": 4,
+    "taskName": "tricep_extension"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/stretch_minute.jpg",
+    "videoPath": "assets/videos/stretch_minute.mp4",
+    "duration": 56,
+    "taskName": "stretch_minute"
   }
 ]

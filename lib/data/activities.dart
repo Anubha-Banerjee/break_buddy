@@ -3,9 +3,9 @@ import '../models/activity.dart';
 
 final List<Activity> predefinedActivities = [
   Activity(
-    id: 'walking',
-    name: 'Walking',
-    icon: Icons.directions_walk,
+    id: 'pushups',
+    name: 'Pushups',
+    icon: Icons.airline_seat_flat,
   ),
   Activity(
     id: 'SideLegRaisesFull',
@@ -35,10 +35,56 @@ final List<Activity> predefinedActivities = [
     icon: Icons.accessibility_new,
   ),
   Activity(
+    id: 'walking',
+    name: 'Walk/Jog',
+    icon: Icons.directions_walk,
+  ),
+
+  Activity(
+    id: 'squat_simple',
+    name: 'Squats',
+    icon: Icons.sports_gymnastics,
+  ),
+  Activity(
+    id: 'lunge_simple',
+    name: 'Lunges',
+    icon: Icons.sports_gymnastics,
+  ),
+  Activity(
     id: 'dancing',
     name: 'Jumping jacks',
     icon: Icons.music_note,
   ),
+  Activity(
+    id: 'nature',
+    name: 'Nature Walk',
+    icon: Icons.nature,
+  ),
+
+  Activity(
+    id: 'shoulder_raise',
+    name: 'Shoulder raises',
+    icon: Icons.fitness_center,
+  ),
+
+  Activity(
+    id: 'side_rows',
+    name: 'Side rows',
+    icon: Icons.fitness_center,
+  ),
+
+  Activity(
+    id: 'tricep_extension',
+    name: 'Tricep extensions',
+    icon: Icons.fitness_center,
+  ),
+
+  Activity(
+    id: 'stretch_minute',
+    name: 'One minute stretch',
+    icon: Icons.fitness_center,
+  ),
+
   Activity(
     id: 'bent_rows',
     name: 'Dumbbell Bent Over Rows',
@@ -50,33 +96,13 @@ final List<Activity> predefinedActivities = [
     icon: Icons.accessibility,
   ),
   Activity(
-    id: 'tricep_stretches',
-    name: 'Dumbbell Tricep Stretches',
-    icon: Icons.sports_gymnastics,
-  ),
-  Activity(
     id: 'side_lifts',
     name: 'Dumbbell Side Lifts',
     icon: Icons.fitness_center,
   ),
   Activity(
     id: 'squats',
-    name: 'Squats',
+    name: 'Dumbell Squats',
     icon: Icons.accessibility_new,
-  ),
-  Activity(
-    id: 'pushups',
-    name: 'Pushups',
-    icon: Icons.airline_seat_flat,
-  ),
-  Activity(
-    id: 'nature',
-    name: 'Nature Walk',
-    icon: Icons.nature,
-  ),
-  Activity(
-    id: 'lunges',
-    name: 'Lunges',
-    icon: Icons.sports_martial_arts,
   ),
 ];
