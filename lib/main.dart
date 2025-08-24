@@ -548,7 +548,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Break Buddy - Exercise Reminder'),
+        title: Text('Break Buddy - Break Reminder'),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
       ),
