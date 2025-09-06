@@ -130,5 +130,17 @@
     "videoPath": "assets/videos/stretch_minute.mp4",
     "duration": 56,
     "taskName": "stretch_minute"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/squats_sumo.jpg",
+    "videoPath": "assets/videos/squats_sumo.mp4",
+    "duration": 3,
+    "taskName": "squats_sumo"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/stretch_minute_2.jpg",
+    "videoPath": "assets/videos/stretch_minute_2.mp4",
+    "duration": 3,
+    "taskName": "stretch_minute_2"
   }
 ]
