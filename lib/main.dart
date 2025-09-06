@@ -23,7 +23,40 @@ Future<void> main() async {
 
     // Get the current working directory (usually the project root when running from IDE)
     String projectRoot = Directory.current.path;
-    String assetsPath = p.join(projectRoot, 'assets');
+
+
+    String assetsPath;
+    if (Platform.isWindows) { // Or more generally, for release builds
+      // Get the directory of the executable
+      String exePath = Platform.resolvedExecutable;
+      String exeDir = p.dirname(exePath);
+
+      // Construct the path to where Flutter bundles assets in a release build
+      // Your video_config.json and video files are expected to be inside
+      // 'data\flutter_assets\assets\' if your original structure was 'project_root/assets/'
+      // and your VideoServer is set up to serve from a base path given to it.
+      //
+      // If your VideoServer expects to be given the '.../Release/data/flutter_assets'
+      // and then it looks for 'assets/videos' within that, then:
+      // assetsPath = p.join(exeDir, 'data', 'flutter_assets');
+      //
+      // If your VideoServer expects to be given the direct path to '.../Release/data/flutter_assets/assets'
+      // (meaning your video_config.json might list paths like 'videos/your_video.mp4')
+      // then:
+      assetsPath = p.join(exeDir, 'data', 'flutter_assets', 'assets');
+
+      // It's crucial to understand what base path your VideoServer is designed to work with
+      // and what the paths in your video_config.json mean relative to that base path.
+
+      print("Release mode: Serving assets from: $assetsPath");
+    } else {
+      // Debug mode or other platforms - assuming 'assets' is relative to project root
+      assetsPath = 'assets';
+      print("Debug mode: Serving assets from project root's: $assetsPath");
+    }
+
+
+
     print('Attempting to serve assets from: $assetsPath'); // For debugging
     await videoServer.start(assetsPath);
 

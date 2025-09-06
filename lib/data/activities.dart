@@ -3,9 +3,9 @@ import '../models/activity.dart';
 
 final List<Activity> predefinedActivities = [
   Activity(
-    id: 'pushups',
-    name: 'Pushups',
-    icon: Icons.airline_seat_flat,
+    id: 'squats_sumo',
+    name: 'Sumo Squats',
+    icon: Icons.sports_gymnastics,
   ),
   Activity(
     id: 'SideLegRaisesFull',
@@ -84,6 +84,11 @@ final List<Activity> predefinedActivities = [
     name: 'One minute stretch',
     icon: Icons.fitness_center,
   ),
+  Activity(
+    id: 'stretch_minute_2',
+    name: 'One minute stretch 2',
+    icon: Icons.fitness_center,
+  ),
 
   Activity(
     id: 'bent_rows',
@@ -104,5 +109,10 @@ final List<Activity> predefinedActivities = [
     id: 'squats',
     name: 'Dumbell Squats',
     icon: Icons.accessibility_new,
+  ),
+  Activity(
+    id: 'pushups',
+    name: 'Pushups',
+    icon: Icons.airline_seat_flat,
   ),
 ];
