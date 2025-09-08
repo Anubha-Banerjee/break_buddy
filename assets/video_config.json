@@ -142,5 +142,11 @@
     "videoPath": "assets/videos/stretch_minute_2.mp4",
     "duration": 3,
     "taskName": "stretch_minute_2"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/stretch_minute_3.jpg",
+    "videoPath": "assets/videos/stretch_minute_3.mp4",
+    "duration": 3,
+    "taskName": "stretch_minute_3"
   }
 ]
