@@ -49,12 +49,17 @@ final List<Activity> predefinedActivities = [
 
   Activity(
     id: 'stretch_minute',
-    name: 'One minute stretch',
+    name: 'Stretching set 1',
     icon: Icons.fitness_center,
   ),
   Activity(
     id: 'stretch_minute_2',
-    name: 'One minute stretch 2',
+    name: 'Stretching set 2',
+    icon: Icons.fitness_center,
+  ),
+  Activity(
+    id: 'stretch_minute_3',
+    name: 'Stretching set 3',
     icon: Icons.fitness_center,
   ),
 
