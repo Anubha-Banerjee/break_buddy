@@ -76,25 +76,59 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
         try {
           BuildContext dialogContext = context;
+          // Show the video dialog
           await showDialog(
             context: dialogContext,
             barrierDismissible: false,
             useSafeArea: false,
-            builder: (BuildContext context) => VideoPlayerDialog(
-              videoPath: video.videoPath,
-              durationInSeconds: video.duration,
-              repeatCount: activity.count,
-              onComplete: () {
-                if (mounted) {
-                  Navigator.of(context).pop();
-                  // Schedule the next video after a short delay
-                  if (_isPlayingSequence) {
-                    Future.delayed(
-                        const Duration(milliseconds: 500), _playNextVideo);
-                  }
+            builder: (BuildContext context) {
+              // Find the next activity with count > 0
+              int nextValidIndex = -1;
+              for (int i = _currentActivityIndex + 1; i < activities.length; i++) {
+                if (activities[i].count > 0 && VideoConfig.getVideoForTask(activities[i].id) != null) {
+                  nextValidIndex = i;
+                  break;
                 }
-              },
-            ),
+              }
+
+              return VideoPlayerDialog(
+                videoPath: video.videoPath,
+                durationInSeconds: video.duration,
+                repeatCount: activity.count,
+                activityName: activity.name,
+                onComplete: () async {
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    
+                    if (nextValidIndex == -1) {
+                      // If this was the last activity, show completion dialog
+                      await showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => AlertDialog(
+                          title: const Text('All Activities Completed! 🎉'),
+                          content: const Text('Great job! You\'ve completed all your exercises.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop(); // Close alert dialog
+                                widget.onDismiss(); // Close exercise reminder dialog
+                              },
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      // Move to next video after transition
+                      if (_isPlayingSequence) {
+                        Future.delayed(const Duration(milliseconds: 500), _playNextVideo);
+                      }
+                    }
+                  }
+                },
+              );
+            },
           );
         } catch (e) {
           print('Error showing video dialog: $e');
