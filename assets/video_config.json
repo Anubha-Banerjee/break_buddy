@@ -36,16 +36,16 @@
     "taskName": "dancing"
   },
   {
-    "thumbnailPath": "assets/thumbnails/side_leg_raises.jpg",
-    "videoPath": "assets/videos/SideLegRaisesFull.mp4",
-    "duration": 29,
-    "taskName": "SideLegRaisesFull"
-  },
-  {
-    "thumbnailPath": "assets/thumbnails/donkey_kicks.jpg",
-    "videoPath": "assets/videos/donkey_kicks.mp4",
+    "thumbnailPath": "assets/thumbnails/glute_bridge_march.jpg",
+    "videoPath": "assets/videos/glute_bridge_march.mp4",
     "duration": 2,
-    "taskName": "donkey_kicks"
+    "taskName": "glute_bridge_march"
+  },0
+  {
+    "thumbnailPath": "assets/thumbnails/boat_hold_bicycle.jpg",
+    "videoPath": "assets/videos/boat_hold_bicycle.mp4",
+    "duration": 2,
+    "taskName": "boat_hold_bicycle"
   },
   {
     "thumbnailPath": "assets/thumbnails/tricep_stretches.jpg",
@@ -90,10 +90,10 @@
     "taskName": "walking"
   },
   {
-    "thumbnailPath": "assets/thumbnails/leg_raises.jpg",
-    "videoPath": "assets/videos/leg_raises.mp4",
+    "thumbnailPath": "assets/thumbnails/crush_hold_knee_raise.jpg",
+    "videoPath": "assets/videos/crush_hold_knee_raise.mp4",
     "duration": 2,
-    "taskName": "leg_raises"
+    "taskName": "crush_hold_knee_raise"
   },
   {
     "thumbnailPath": "assets/thumbnails/burpees.jpg",

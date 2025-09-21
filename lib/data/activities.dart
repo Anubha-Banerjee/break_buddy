@@ -12,7 +12,6 @@ final List<Activity> predefinedActivities = [
     name: 'Walk/Jog',
     icon: Icons.directions_walk,
   ),
-
   Activity(
     id: 'squat_simple',
     name: 'Squats',
@@ -28,25 +27,21 @@ final List<Activity> predefinedActivities = [
     name: 'Nature Walk',
     icon: Icons.nature,
   ),
-
   Activity(
     id: 'shoulder_raise',
     name: 'Shoulder raises',
     icon: Icons.fitness_center,
   ),
-
   Activity(
     id: 'side_rows',
     name: 'Side rows',
     icon: Icons.fitness_center,
   ),
-
   Activity(
     id: 'tricep_extension',
     name: 'Tricep extensions',
     icon: Icons.fitness_center,
   ),
-
   Activity(
     id: 'stretch_minute',
     name: 'Stretching set 1',
@@ -62,7 +57,6 @@ final List<Activity> predefinedActivities = [
     name: 'Stretching set 3',
     icon: Icons.fitness_center,
   ),
-
   Activity(
     id: 'bent_rows',
     name: 'Dumbbell Bent Over Rows',
@@ -83,16 +77,14 @@ final List<Activity> predefinedActivities = [
     name: 'Dumbell Squats',
     icon: Icons.accessibility_new,
   ),
-
   Activity(
     id: 'stretches',
     name: 'Bicycle kicks',
     icon: Icons.accessibility_new,
   ),
-
   Activity(
-    id: 'SideLegRaisesFull',
-    name: 'Side Leg Raises',
+    id: 'glute_bridge_march',
+    name: 'Glute Bridge March',
     icon: Icons.sports_gymnastics,
   ),
   Activity(
@@ -101,14 +93,13 @@ final List<Activity> predefinedActivities = [
     icon: Icons.circle_outlined,
   ),
   Activity(
-    id: 'leg_raises',
-    name: 'Leg Raises',
+    id: 'crush_hold_knee_raise',
+    name: 'Crush Hold Knee Raise',
     icon: Icons.accessibility_new,
   ),
-
   Activity(
-    id: 'donkey_kicks',
-    name: 'Donkey Kicks',
+    id: 'boat_hold_bicycle',
+    name: 'Boat Hold Bicycle',
     icon: Icons.sports_gymnastics,
   ),
   Activity(

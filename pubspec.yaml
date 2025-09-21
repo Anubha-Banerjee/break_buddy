@@ -32,3 +32,9 @@ flutter:
     - assets/videos/
     - assets/thumbnails/
     - assets/video_config.json
+
+dependency_overrides:
+  media_kit_video:
+    git:
+      url: https://github.com/alexmercerind/media_kit
+      path: media_kit_video

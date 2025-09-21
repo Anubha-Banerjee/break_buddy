@@ -7,6 +7,7 @@ import '../data/activities.dart';
 
 class ExerciseReminderDialog extends StatefulWidget {
   final int selectedInterval;
+  final int totalWorkingTime; // Total time user has been working (in seconds)
   final VoidCallback onDismiss;
   final VoidCallback onSnooze1;
   final VoidCallback onSnooze5;
@@ -16,6 +17,7 @@ class ExerciseReminderDialog extends StatefulWidget {
   const ExerciseReminderDialog({
     super.key,
     required this.selectedInterval,
+    required this.totalWorkingTime,
     required this.onDismiss,
     required this.onSnooze1,
     required this.onSnooze5,
@@ -42,7 +44,20 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
     setState(() {
       final index = activities.indexWhere((activity) => activity.id == id);
       if (index != -1) {
-        activities[index] = activities[index].copyWith(count: newCount);
+        // If count is changing from 0 to a positive number, record the selection time
+        if (activities[index].count == 0 && newCount > 0) {
+          activities[index] = activities[index].copyWith(
+            count: newCount,
+            selectionTime: DateTime.now(),
+          );
+        } else {
+          // If count is being set to 0, clear the selection time
+          activities[index] = activities[index].copyWith(
+            count: newCount,
+            selectionTime:
+                newCount > 0 ? activities[index].selectionTime : null,
+          );
+        }
       }
     });
   }
@@ -54,19 +69,32 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       return;
     }
 
-    // Find next activity with count > 0
-    do {
-      _currentActivityIndex++;
-      if (_currentActivityIndex < activities.length) {
-        print(
-            'Checking activity: ${activities[_currentActivityIndex].name} (count: ${activities[_currentActivityIndex].count})');
-      }
-    } while (_currentActivityIndex < activities.length &&
-        (activities[_currentActivityIndex].count == 0 ||
-            VideoConfig.getVideoForTask(activities[_currentActivityIndex].id) ==
-                null));
+    // Get activities with count > 0 and sort by selection time
+    var selectedActivities = activities
+        .where((activity) =>
+            activity.count > 0 &&
+            activity.selectionTime != null &&
+            VideoConfig.getVideoForTask(activity.id) != null)
+        .toList()
+      ..sort((a, b) => a.selectionTime!.compareTo(b.selectionTime!));
 
-    if (_currentActivityIndex < activities.length) {
+    // Find the next activity after current index
+    Activity? nextActivity;
+    if (_currentActivityIndex == -1) {
+      nextActivity =
+          selectedActivities.isNotEmpty ? selectedActivities.first : null;
+    } else {
+      var currentActivity = activities[_currentActivityIndex];
+      var currentIndex =
+          selectedActivities.indexWhere((a) => a.id == currentActivity.id);
+      if (currentIndex < selectedActivities.length - 1) {
+        nextActivity = selectedActivities[currentIndex + 1];
+      }
+    }
+
+    if (nextActivity != null) {
+      _currentActivityIndex =
+          activities.indexWhere((a) => a.id == nextActivity!.id);
       final activity = activities[_currentActivityIndex];
       final video = VideoConfig.getVideoForTask(activity.id);
 
@@ -82,37 +110,62 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
             barrierDismissible: false,
             useSafeArea: false,
             builder: (BuildContext context) {
-              // Find the next activity with count > 0
-              int nextValidIndex = -1;
-              for (int i = _currentActivityIndex + 1; i < activities.length; i++) {
-                if (activities[i].count > 0 && VideoConfig.getVideoForTask(activities[i].id) != null) {
-                  nextValidIndex = i;
-                  break;
-                }
-              }
+              // Get sorted activities to find next in sequence
+              var sortedActivities = activities
+                  .where((activity) =>
+                      activity.count > 0 &&
+                      activity.selectionTime != null &&
+                      VideoConfig.getVideoForTask(activity.id) != null)
+                  .toList()
+                ..sort((a, b) => a.selectionTime!.compareTo(b.selectionTime!));
+
+              int currentSortedIndex =
+                  sortedActivities.indexWhere((a) => a.id == activity.id);
+              bool hasMoreActivities =
+                  currentSortedIndex < sortedActivities.length - 1;
+
+              // Get all remaining activities to determine if this is the last one
+              var remainingActivities = activities
+                  .where((a) =>
+                      a.count > 0 &&
+                      a.selectionTime != null &&
+                      VideoConfig.getVideoForTask(a.id) != null)
+                  .toList()
+                ..sort((a, b) => a.selectionTime!.compareTo(b.selectionTime!));
+
+              var currentIndex =
+                  remainingActivities.indexWhere((a) => a.id == activity.id);
+              var isLastActivity =
+                  currentIndex == remainingActivities.length - 1;
 
               return VideoPlayerDialog(
                 videoPath: video.videoPath,
                 durationInSeconds: video.duration,
                 repeatCount: activity.count,
                 activityName: activity.name,
+                isLastActivity: isLastActivity,
                 onComplete: () async {
                   if (mounted) {
                     Navigator.of(context).pop();
-                    
-                    if (nextValidIndex == -1) {
+
+                    if (currentSortedIndex >= sortedActivities.length - 1) {
                       // If this was the last activity, show completion dialog
                       await showDialog(
                         context: context,
                         barrierDismissible: false,
                         builder: (context) => AlertDialog(
                           title: const Text('All Activities Completed! 🎉'),
-                          content: const Text('Great job! You\'ve completed all your exercises.'),
+                          content: const Text(
+                              'Great job! You\'ve completed all your activities.'),
                           actions: [
                             TextButton(
                               onPressed: () {
-                                Navigator.of(context).pop(); // Close alert dialog
-                                widget.onDismiss(); // Close exercise reminder dialog
+                                Navigator.of(context)
+                                    .pop(); // Close alert dialog
+                                setState(() {
+                                  _isPlayingSequence = false;
+                                  _currentActivityIndex = -1;
+                                });
                               },
                               child: const Text('OK'),
                             ),
@@ -122,7 +175,8 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     } else {
                       // Move to next video after transition
                       if (_isPlayingSequence) {
-                        Future.delayed(const Duration(milliseconds: 500), _playNextVideo);
+                        Future.delayed(
+                            const Duration(milliseconds: 500), _playNextVideo);
                       }
                     }
                   }
@@ -217,11 +271,16 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'You\'ve been working for ${(widget.selectedInterval / 60).toInt()} minutes!\nTime to give your body some love.',
+                    'You\'ve been working for ${_formatWorkingTime(widget.totalWorkingTime)}!\nTime to give your body some love.',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[700],
+                      color: widget.totalWorkingTime >= 3600
+                          ? Colors.red
+                          : Colors.grey[700],
                       height: 1.4,
+                      fontWeight: widget.totalWorkingTime >= 3600
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -242,7 +301,8 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     'Remind me again in:',
                     style: TextStyle(
                       fontSize: 16, // Adjust style as needed
-                      fontWeight: FontWeight.w600, // Optional: make it a bit bolder
+                      fontWeight:
+                          FontWeight.w600, // Optional: make it a bit bolder
                       color: Colors.black54, // Adjust color
                     ),
                   ),
@@ -260,11 +320,15 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _startActivitySequence,
+                          onPressed: widget.selectedInterval > 0
+                              ? _startActivitySequence
+                              : null,
                           icon: const Icon(Icons.play_circle, size: 18),
                           label: const Text('Start Activities'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
+                            backgroundColor: widget.selectedInterval > 0
+                                ? Colors.blue[600]
+                                : Colors.grey,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -298,6 +362,17 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
         ),
       ),
     );
+  }
+
+  String _formatWorkingTime(int totalSeconds) {
+    if (totalSeconds >= 3600) {
+      int hours = totalSeconds ~/ 3600;
+      int minutes = (totalSeconds % 3600) ~/ 60;
+      return '$hours hour${hours > 1 ? 's' : ''} and $minutes minute${minutes != 1 ? 's' : ''}';
+    } else {
+      int minutes = totalSeconds ~/ 60;
+      return '$minutes minute${minutes != 1 ? 's' : ''}';
+    }
   }
 
   Widget _buildSnoozeButton(String text, VoidCallback onPressed) {

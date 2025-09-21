@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'dart:math';
 
 class VideoPlayerDialog extends StatefulWidget {
   final String videoPath;
@@ -9,6 +10,7 @@ class VideoPlayerDialog extends StatefulWidget {
   final VoidCallback onComplete;
   final int repeatCount;
   final String activityName;
+  final bool isLastActivity;
 
   const VideoPlayerDialog({
     Key? key,
@@ -17,6 +19,7 @@ class VideoPlayerDialog extends StatefulWidget {
     required this.onComplete,
     required this.activityName,
     this.repeatCount = 0, // 0 means continuous loop
+    this.isLastActivity = false,
   }) : super(key: key);
 
   @override
@@ -31,7 +34,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   static const int maxAttempts = 3;
   bool _initialized = false;
   bool _error = false;
-  int _playCount = 0;
+  int _playCount = 1;
   bool _showingNextActivityPopup = false;
   bool _videoCompleted = false;
   StreamSubscription<bool>? _playbackSubscription;
@@ -42,10 +45,11 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     super.initState();
     _player = Player();
     _videoController = VideoController(_player);
-    _playCount = 0; // Explicitly start at 0
+    _playCount = 1; // Explicitly start at 0
     _lastPosition = null; // Reset position tracking
     _showingNextActivityPopup = false;
-    print('Initializing video player for ${widget.activityName} with ${widget.repeatCount} repeats');
+    print(
+        'Initializing video player for ${widget.activityName} with ${widget.repeatCount} repeats');
     _initializePlayer();
   }
 
@@ -56,59 +60,69 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
       await _player.open(Media(widget.videoPath));
       await _player.setVolume(100);
-      
+
       // For counted repeats, use single mode and handle looping ourselves
       // For continuous play (count=0), use loop mode
       await _player.setPlaylistMode(PlaylistMode.single);
-      
+
       // Reset all state variables
-      _playCount = 0;
+      _playCount = 1;
       _videoCompleted = false;
       _lastPosition = null;
 
       // Set up playback monitoring if we need to count repeats
       if (widget.repeatCount > 0) {
-        print('Setting up playback monitoring for ${widget.repeatCount} repeats');
-        
+        print(
+            'Setting up playback monitoring for ${widget.repeatCount} repeats');
+
         // Monitor position changes to track progress
         bool hasReachedEnd = false;
         _player.stream.position.listen((position) async {
           final currentPositionMs = position.inMilliseconds;
           final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
           final durationMs = widget.durationInSeconds * 1000;
-          
+
           // Print position updates for debugging
-          print('Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms');
-          
+          print(
+              'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms');
+
           // Detect completion when we reach near the end of the video
           if (!hasReachedEnd && currentPositionMs >= (durationMs - 200)) {
             print('Reached end of video');
             hasReachedEnd = true;
           }
-          
+
           // Detect loop when we go back to start after reaching end
           if (hasReachedEnd && currentPositionMs < 200 && !_videoCompleted) {
             print('Loop detected: Video restarted from beginning');
             hasReachedEnd = false;
-            
+
             if (mounted) {
-              _videoCompleted = true;  // Mark this loop as completed
+              _videoCompleted = true; // Mark this loop as completed
+              int unboundedPlayCount = 0;
               setState(() {
-                _playCount++;
+                unboundedPlayCount = _playCount + 1;
+                _playCount = min(_playCount + 1, widget.repeatCount);
               });
-              print('Incremented play count to $_playCount/${widget.repeatCount}');
-              
-              if (_playCount >= widget.repeatCount) {
-                print('Target count reached ($_playCount/${widget.repeatCount}), preparing to end');
+              print(
+                  'Incremented play count to $_playCount/${widget.repeatCount}');
+
+              if (unboundedPlayCount > widget.repeatCount) {
+                print(
+                    'Target count reached ($_playCount/${widget.repeatCount}), preparing to end');
                 await _player.pause();
-                
+
                 if (mounted) {
                   setState(() {
-                    _showingNextActivityPopup = true;
+                    // Only show the transition message if this is not the last activity
+                    _showingNextActivityPopup = !widget.isLastActivity;
                   });
-                  
-                  await Future.delayed(const Duration(seconds: 2));
-                  
+
+                  // If showing the transition message, wait before completing
+                  if (_showingNextActivityPopup) {
+                    await Future.delayed(const Duration(seconds: 2));
+                  }
+
                   if (mounted) {
                     widget.onComplete();
                   }
@@ -122,18 +136,21 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 }
               }
             }
-          } else if (currentPositionMs > 200 && currentPositionMs < (durationMs - 200)) {
+          } else if (currentPositionMs > 200 &&
+              currentPositionMs < (durationMs - 200)) {
             // Reset flags when we're in the middle of the video
             _videoCompleted = false;
             hasReachedEnd = false;
           }
-          
+
           _lastPosition = position;
         });
 
         // Backup monitoring through completed event for smoother looping
-        _playbackSubscription = _player.stream.completed.listen((completed) async {
-          print('Completed event received: completed=$completed, playCount=$_playCount/${widget.repeatCount}');
+        _playbackSubscription =
+            _player.stream.completed.listen((completed) async {
+          print(
+              'Completed event received: completed=$completed, playCount=$_playCount/${widget.repeatCount}');
           if (completed && mounted && _playCount < widget.repeatCount) {
             await _player.seek(Duration.zero);
             if (mounted) {
@@ -144,7 +161,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
         // Monitor playback state for debugging
         _player.stream.playing.listen((playing) {
-          print('Playback state changed: playing=$playing, count=$_playCount/${widget.repeatCount}');
+          print(
+              'Playback state changed: playing=$playing, count=$_playCount/${widget.repeatCount}');
         });
       }
 
@@ -184,7 +202,6 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       });
     }
   }
-
 
   @override
   void dispose() {
@@ -243,7 +260,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 alignment: Alignment.topRight,
                 children: [
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480, maxHeight: 360),
+                    constraints:
+                        const BoxConstraints(maxWidth: 480, maxHeight: 360),
                     child: Container(
                       color: Colors.black,
                       child: Video(
@@ -253,24 +271,26 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       ),
                     ),
                   ),
-                  if (widget.repeatCount > 0) Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Rep ${_playCount}/${widget.repeatCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  if (widget.repeatCount > 0)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Rep ${_playCount}/${widget.repeatCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
               Container(
@@ -307,8 +327,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            Navigator.of(context).pop(); // Close video dialog
-                            Navigator.of(context).pop(); // Close exercise dialog
+                            Navigator.of(context).pop(); // Close video dialog only
                           },
                           icon: const Icon(Icons.close),
                           label: const Text('Quit'),

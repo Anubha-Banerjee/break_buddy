@@ -20,13 +20,12 @@ Future<void> main() async {
 
   // Start video server
   try {
-
     // Get the current working directory (usually the project root when running from IDE)
     String projectRoot = Directory.current.path;
 
-
     String assetsPath;
-    if (Platform.isWindows) { // Or more generally, for release builds
+    if (Platform.isWindows) {
+      // Or more generally, for release builds
       // Get the directory of the executable
       String exePath = Platform.resolvedExecutable;
       String exeDir = p.dirname(exePath);
@@ -54,8 +53,6 @@ Future<void> main() async {
       assetsPath = 'assets';
       print("Debug mode: Serving assets from project root's: $assetsPath");
     }
-
-
 
     print('Attempting to serve assets from: $assetsPath'); // For debugging
     await videoServer.start(assetsPath);
@@ -470,6 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedInterval = 1800; // Default interval in seconds
   bool _isTimerActive = false;
   bool _isReminderShowing = false;
+  int _totalWorkingTime = 0; // Track total working time including snoozes
 
   // Timer interval options (in seconds)
   final Map<String, int> _timerOptions = {
@@ -494,6 +492,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
+          // Increment total working time while timer is running
+          _totalWorkingTime++;
         } else {
           _showExerciseReminder();
           _secondsRemaining = _selectedInterval; // Reset to selected interval
@@ -507,6 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isTimerActive = false;
       _secondsRemaining = _selectedInterval; // Reset to selected interval
+      _totalWorkingTime = 0; // Reset total working time when stopping timer
     });
   }
 
@@ -536,34 +537,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return ExerciseReminderDialog(
           selectedInterval: _selectedInterval,
+          totalWorkingTime: _totalWorkingTime,
           onDismiss: () {
             handleDismiss();
             setState(() {
               _secondsRemaining = _selectedInterval;
+              _totalWorkingTime =
+                  0; // Reset total working time when taking a proper break
             });
           },
           onSnooze1: () {
             handleDismiss();
             setState(() {
               _secondsRemaining = 60;
+              // Don't reset total working time for snooze
             });
           },
           onSnooze5: () {
             handleDismiss();
             setState(() {
               _secondsRemaining = 300;
+              // Don't reset total working time for snooze
             });
           },
           onSnooze10: () {
             handleDismiss();
             setState(() {
               _secondsRemaining = 600;
+              // Don't reset total working time for snooze
             });
           },
           onSnooze15: () {
             handleDismiss();
             setState(() {
               _secondsRemaining = 900;
+              // Don't reset total working time for snooze
             });
           },
         );
@@ -817,11 +825,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: _showExerciseReminder,
+                  onPressed: _isTimerActive ? _showExerciseReminder : null,
                   icon: Icon(Icons.preview),
                   label: Text('Take a break now!'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor:
+                        _isTimerActive ? Colors.orange : Colors.grey,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                     textStyle: TextStyle(fontSize: 16),

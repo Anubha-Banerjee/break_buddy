@@ -7,6 +7,7 @@ class Activity {
   final String? videoPath;
   final String? thumbnailPath;
   int count;
+  DateTime? selectionTime; // Track when the activity was first selected
 
   Activity({
     required this.id,
@@ -15,6 +16,7 @@ class Activity {
     this.videoPath,
     this.thumbnailPath,
     this.count = 0,
+    this.selectionTime,
   });
 
   Activity copyWith({
@@ -22,12 +24,14 @@ class Activity {
     String? name,
     IconData? icon,
     int? count,
+    DateTime? selectionTime,
   }) {
     return Activity(
       id: id ?? this.id,
       name: name ?? this.name,
       icon: icon ?? this.icon,
       count: count ?? this.count,
+      selectionTime: selectionTime ?? this.selectionTime,
     );
   }
 }
