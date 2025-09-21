@@ -30,10 +30,10 @@
     "taskName": "side_lifts"
   },
   {
-    "thumbnailPath": "assets/thumbnails/dancing.jpg",
-    "videoPath": "assets/videos/dancing.mp4",
+    "thumbnailPath": "assets/thumbnails/cobra_pose.jpg",
+    "videoPath": "assets/videos/cobra_pose.mp4",
     "duration": 2,
-    "taskName": "dancing"
+    "taskName": "cobra_pose"
   },
   {
     "thumbnailPath": "assets/thumbnails/glute_bridge_march.jpg",
@@ -66,6 +66,12 @@
     "taskName": "nature"
   },
   {
+    "thumbnailPath": "assets/thumbnails/breathing.jpg",
+    "videoPath": "assets/videos/breathing.mp4",
+    "duration": 2,
+    "taskName": "breathing"
+  },
+  {
     "thumbnailPath": "assets/thumbnails/bent_rows.jpg",
     "videoPath": "assets/videos/bent_rows.mp4",
     "duration": 2,
@@ -96,16 +102,34 @@
     "taskName": "crush_hold_knee_raise"
   },
   {
+    "thumbnailPath": "assets/thumbnails/cat_cow.jpg",
+    "videoPath": "assets/videos/cat_cow.mp4",
+    "duration": 2,
+    "taskName": "cat_cow"
+  },
+   {
+    "thumbnailPath": "assets/thumbnails/butt_kicks.jpg",
+    "videoPath": "assets/videos/butt_kicks.mp4",
+    "duration": 2,
+    "taskName": "butt_kicks"
+  },
+   {
+    "thumbnailPath": "assets/thumbnails/front_kicks.jpg",
+    "videoPath": "assets/videos/front_kicks.mp4",
+    "duration": 2,
+    "taskName": "front_kicks"
+  },
+  {
     "thumbnailPath": "assets/thumbnails/burpees.jpg",
     "videoPath": "assets/videos/burpees.mp4",
     "duration": 2,
     "taskName": "burpees"
   },
   {
-    "thumbnailPath": "assets/thumbnails/stretches.jpg",
-    "videoPath": "assets/videos/stretches.mp4",
+    "thumbnailPath": "assets/thumbnails/high_plank_leg_raise.jpg",
+    "videoPath": "assets/videos/high_plank_leg_raise.mp4",
     "duration": 2,
-    "taskName": "stretches"
+    "taskName": "high_plank_leg_raise"
   },
   {
     "thumbnailPath": "assets/thumbnails/shoulder_raise.jpg",

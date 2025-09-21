@@ -211,16 +211,25 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       print('${activity.name}: ${activity.count}');
     }
 
-    if (!_isPlayingSequence) {
-      print('Starting activity sequence');
+    // If there's a sequence in progress, stop it first
+    if (_isPlayingSequence) {
+      print('Stopping current sequence and starting new one');
       setState(() {
-        _isPlayingSequence = true;
+        _isPlayingSequence = false;
         _currentActivityIndex = -1;
       });
-      _playNextVideo();
-    } else {
-      print('Sequence already in progress');
     }
+
+    // Start a new sequence after a brief delay to ensure cleanup
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _isPlayingSequence = true;
+          _currentActivityIndex = -1;
+        });
+        _playNextVideo();
+      }
+    });
   }
 
   @override
@@ -320,13 +329,15 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: widget.selectedInterval > 0
+                          onPressed: widget.selectedInterval > 0 &&
+                                  activities.any((a) => a.count > 0)
                               ? _startActivitySequence
                               : null,
                           icon: const Icon(Icons.play_circle, size: 18),
                           label: const Text('Start Activities'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: widget.selectedInterval > 0
+                            backgroundColor: (widget.selectedInterval > 0 &&
+                                    activities.any((a) => a.count > 0))
                                 ? Colors.blue[600]
                                 : Colors.grey,
                             foregroundColor: Colors.white,

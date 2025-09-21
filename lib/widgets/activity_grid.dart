@@ -17,9 +17,9 @@ class ActivityGrid extends StatelessWidget {
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 6, // Show 6 items per row instead of 4
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12, // Slightly reduced spacing
+        crossAxisCount: 6, // Show 6 items per row
+        childAspectRatio: 0.65, // Increased height to prevent overflow
+        crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
       itemCount: activities.length,

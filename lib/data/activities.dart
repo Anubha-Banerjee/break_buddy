@@ -9,7 +9,7 @@ final List<Activity> predefinedActivities = [
   ),
   Activity(
     id: 'walking',
-    name: 'Walk/Jog',
+    name: 'Walking',
     icon: Icons.directions_walk,
   ),
   Activity(
@@ -25,6 +25,11 @@ final List<Activity> predefinedActivities = [
   Activity(
     id: 'nature',
     name: 'Nature Walk',
+    icon: Icons.nature,
+  ),
+  Activity(
+    id: 'breathing',
+    name: 'Breathing Exercise',
     icon: Icons.nature,
   ),
   Activity(
@@ -58,6 +63,16 @@ final List<Activity> predefinedActivities = [
     icon: Icons.fitness_center,
   ),
   Activity(
+    id: 'butt_kicks',
+    name: 'Butt Kicks',
+    icon: Icons.accessibility_new,
+  ),
+  Activity(
+    id: 'front_kicks',
+    name: 'Front Kicks',
+    icon: Icons.accessibility_new,
+  ),
+  Activity(
     id: 'bent_rows',
     name: 'Dumbbell Bent Over Rows',
     icon: Icons.fitness_center,
@@ -78,8 +93,8 @@ final List<Activity> predefinedActivities = [
     icon: Icons.accessibility_new,
   ),
   Activity(
-    id: 'stretches',
-    name: 'Bicycle kicks',
+    id: 'high_plank_leg_raise',
+    name: 'High Plank Leg Raise',
     icon: Icons.accessibility_new,
   ),
   Activity(
@@ -98,13 +113,18 @@ final List<Activity> predefinedActivities = [
     icon: Icons.accessibility_new,
   ),
   Activity(
+    id: 'cat_cow',
+    name: 'Cat Cow strech',
+    icon: Icons.accessibility_new,
+  ),
+  Activity(
     id: 'boat_hold_bicycle',
     name: 'Boat Hold Bicycle',
     icon: Icons.sports_gymnastics,
   ),
   Activity(
-    id: 'dancing',
-    name: 'Jumping jacks',
+    id: 'cobra_pose',
+    name: 'Cobra Pose',
     icon: Icons.music_note,
   ),
   Activity(
