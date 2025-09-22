@@ -1,0 +1,4 @@
+-see that back kicks reps not working.
+-add the time spent working in bold.
+-add a reset button for the activities on the icons page.
+-show the stats button on main page.
