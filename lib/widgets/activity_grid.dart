@@ -15,12 +15,12 @@ class ActivityGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 6, // Show 6 items per row
-        childAspectRatio: 0.65, // Increased height to prevent overflow
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        childAspectRatio: 0.7, // Made tiles slightly taller
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: activities.length,
       itemBuilder: (context, index) {

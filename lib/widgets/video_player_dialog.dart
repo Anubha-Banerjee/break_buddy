@@ -11,6 +11,7 @@ class VideoPlayerDialog extends StatefulWidget {
   final int repeatCount;
   final String activityName;
   final bool isLastActivity;
+  final String? nextActivityName; // Add next activity name
 
   const VideoPlayerDialog({
     Key? key,
@@ -20,6 +21,7 @@ class VideoPlayerDialog extends StatefulWidget {
     required this.activityName,
     this.repeatCount = 0, // 0 means continuous loop
     this.isLastActivity = false,
+    this.nextActivityName,
   }) : super(key: key);
 
   @override
@@ -120,7 +122,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
                   // If showing the transition message, wait before completing
                   if (_showingNextActivityPopup) {
-                    await Future.delayed(const Duration(seconds: 2));
+                    await Future.delayed(const Duration(seconds: 4));
                   }
 
                   if (mounted) {
@@ -327,7 +329,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            Navigator.of(context).pop(); // Close video dialog only
+                            Navigator.of(context)
+                                .pop(); // Close video dialog only
                           },
                           icon: const Icon(Icons.close),
                           label: const Text('Quit'),
@@ -352,9 +355,11 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 color: Colors.black87,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Starting next activity...',
-                style: TextStyle(
+              child: Text(
+                widget.nextActivityName != null
+                    ? 'Starting ${widget.nextActivityName}...'
+                    : 'Starting next activity...',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

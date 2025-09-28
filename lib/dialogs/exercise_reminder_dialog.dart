@@ -13,6 +13,7 @@ class ExerciseReminderDialog extends StatefulWidget {
   final VoidCallback onSnooze5;
   final VoidCallback onSnooze10;
   final VoidCallback onSnooze15;
+  final double dialogHeight; // Height of the dialog
 
   const ExerciseReminderDialog({
     super.key,
@@ -23,6 +24,7 @@ class ExerciseReminderDialog extends StatefulWidget {
     required this.onSnooze5,
     required this.onSnooze10,
     required this.onSnooze15,
+    this.dialogHeight = 850, // Default height
   });
 
   @override
@@ -138,12 +140,21 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
               var isLastActivity =
                   currentIndex == remainingActivities.length - 1;
 
+              // Get next activity name if available
+              String? nextActivityName;
+              if (!isLastActivity &&
+                  currentSortedIndex + 1 < sortedActivities.length) {
+                nextActivityName =
+                    sortedActivities[currentSortedIndex + 1].name;
+              }
+
               return VideoPlayerDialog(
                 videoPath: video.videoPath,
                 durationInSeconds: video.duration,
                 repeatCount: activity.count,
                 activityName: activity.name,
                 isLastActivity: isLastActivity,
+                nextActivityName: nextActivityName,
                 onComplete: () async {
                   if (mounted) {
                     Navigator.of(context).pop();
@@ -239,7 +250,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       elevation: 20,
       child: Container(
         width: 800, // Wider to show more items per row
-        height: 800, // Taller to fit all content
+        height: widget.dialogHeight, // Configurable height
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
@@ -252,7 +263,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Column(
                 children: [
                   Container(
@@ -279,19 +290,30 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'You\'ve been working for ${_formatWorkingTime(widget.totalWorkingTime)}!\nTime to give your body some love.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: widget.totalWorkingTime >= 3600
-                          ? Colors.red
-                          : Colors.grey[700],
-                      height: 1.4,
-                      fontWeight: widget.totalWorkingTime >= 3600
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+                  RichText(
                     textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        height: 1.4,
+                      ),
+                      children: [
+                        const TextSpan(text: 'You\'ve been working for '),
+                        TextSpan(
+                          text: _formatWorkingTime(widget.totalWorkingTime),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: widget.totalWorkingTime >= 3600
+                                ? Colors.red
+                                : Colors.blue[700],
+                          ),
+                        ),
+                        const TextSpan(
+                            text: '!\nTime to give your body some love.'),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -324,7 +346,33 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       _buildSnoozeButton('15m', widget.onSnooze15),
                     ],
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 10),
+                  // Reset activities button
+                  OutlinedButton.icon(
+                    onPressed: activities.any((a) => a.count > 0)
+                        ? () {
+                            setState(() {
+                              for (var activity in activities) {
+                                _onActivityCountChanged(activity.id, 0);
+                              }
+                            });
+                          }
+                        : null,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Reset Activities'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red[600],
+                      side: BorderSide(color: Colors.red[400]!, width: 1.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
