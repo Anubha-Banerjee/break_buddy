@@ -16,9 +16,10 @@ dependencies:
   shelf: ^1.4.2
   shelf_static: ^1.1.3
   path: ^1.9.1
-  media_kit: ^1.2.0
-  media_kit_video: ^1.3.0
-  media_kit_libs_windows_video: ^1.0.11
+  media_kit: ^1.2.0                     # Primary package
+  media_kit_video: ^1.3.0                # For video rendering
+  media_kit_libs_windows_video: ^1.0.11  # Windows package
+  media_kit_libs_android_video: ^1.3.0   # Android package
 
 dev_dependencies:
   flutter_test:

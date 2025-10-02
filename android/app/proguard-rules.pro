@@ -1,0 +1,2 @@
+-keep class com.alexmercerind.media_kit_libs_android_video.** { *; }
+-keep class wseemann.media.** { *; }
