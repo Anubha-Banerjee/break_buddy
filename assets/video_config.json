@@ -172,5 +172,47 @@
     "videoPath": "assets/videos/stretch_minute_3.mp4",
     "duration": 3,
     "taskName": "stretch_minute_3"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/spine_rotation.jpg",
+    "videoPath": "assets/videos/spine_rotation.mp4",
+    "duration": 2,
+    "taskName": "spine_rotation"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/high_knees.jpg",
+    "videoPath": "assets/videos/high_knees.mp4",
+    "duration": 1,
+    "taskName": "high_knees"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/side_leg_raises.jpg",
+    "videoPath": "assets/videos/side_leg_raises.mp4",
+    "duration": 2,
+    "taskName": "side_leg_raises"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/jumping.jpg",
+    "videoPath": "assets/videos/jumping.mp4",
+    "duration": 1,
+    "taskName": "jumping"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/bird_dog.jpg",
+    "videoPath": "assets/videos/bird_dog.mp4",
+    "duration": 2,
+    "taskName": "bird_dog"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/child_pose.jpg",
+    "videoPath": "assets/videos/child_pose.mp4",
+    "duration": 2,
+    "taskName": "child_pose"
+  },
+  {
+    "thumbnailPath": "assets/thumbnails/punching.jpg",
+    "videoPath": "assets/videos/punching.mp4",
+    "duration": 1,
+    "taskName": "punching"
   }
 ]

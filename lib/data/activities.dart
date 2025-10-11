@@ -33,21 +33,6 @@ final List<Activity> predefinedActivities = [
     icon: Icons.nature,
   ),
   Activity(
-    id: 'shoulder_raise',
-    name: 'Shoulder raises',
-    icon: Icons.fitness_center,
-  ),
-  Activity(
-    id: 'side_rows',
-    name: 'Side rows',
-    icon: Icons.fitness_center,
-  ),
-  Activity(
-    id: 'tricep_extension',
-    name: 'Tricep extensions',
-    icon: Icons.fitness_center,
-  ),
-  Activity(
     id: 'stretch_minute',
     name: 'Stretching set 1',
     icon: Icons.fitness_center,
@@ -68,9 +53,49 @@ final List<Activity> predefinedActivities = [
     icon: Icons.accessibility_new,
   ),
   Activity(
+    id: 'punching',
+    name: 'punching',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
     id: 'front_kicks',
     name: 'Front Kicks',
     icon: Icons.accessibility_new,
+  ),
+  Activity(
+    id: 'spine_rotation',
+    name: 'spine_rotation',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
+    id: 'high_knees',
+    name: 'high_knees',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
+    id: 'side_leg_raises',
+    name: 'side_leg_raises',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
+    id: 'jumping',
+    name: 'jumping',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
+    id: 'shoulder_raise',
+    name: 'Shoulder raises',
+    icon: Icons.fitness_center,
+  ),
+  Activity(
+    id: 'side_rows',
+    name: 'Side rows',
+    icon: Icons.fitness_center,
+  ),
+  Activity(
+    id: 'tricep_extension',
+    name: 'Tricep extensions',
+    icon: Icons.fitness_center,
   ),
   Activity(
     id: 'bent_rows',
@@ -128,8 +153,18 @@ final List<Activity> predefinedActivities = [
     icon: Icons.music_note,
   ),
   Activity(
+    id: 'bird_dog',
+    name: 'bird_dog',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
+    id: 'child_pose',
+    name: 'child_pose',
+    icon: Icons.airline_seat_flat,
+  ),
+  Activity(
     id: 'pushups',
     name: 'Pushups',
     icon: Icons.airline_seat_flat,
-  ),
+  )
 ];
