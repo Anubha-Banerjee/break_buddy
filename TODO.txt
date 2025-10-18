@@ -1,3 +1,5 @@
 - show stats
 - template for adding new activities
 - preset activities - manually built - max 10
+
+new activities : Woman Doing Bent Knee Hip Raise Exercise for abs

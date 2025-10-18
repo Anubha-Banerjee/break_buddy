@@ -8,7 +8,7 @@ import '../data/activities.dart';
 class ExerciseReminderDialog extends StatefulWidget {
   final int selectedInterval;
   final int totalWorkingTime; // Total time user has been working (in seconds)
-  final VoidCallback onDismiss;
+  final void Function(List<Activity> completedActivities) onDismiss;
   final VoidCallback onSnooze1;
   final VoidCallback onSnooze5;
   final VoidCallback onSnooze10;
@@ -399,7 +399,12 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: widget.onDismiss,
+                          onPressed: () {
+                            // Get completed activities
+                            final completedActivities =
+                                activities.where((a) => a.count > 0).toList();
+                            widget.onDismiss(completedActivities);
+                          },
                           icon: const Icon(Icons.check_circle, size: 18),
                           label: const Text('Done! Reset timer'),
                           style: ElevatedButton.styleFrom(

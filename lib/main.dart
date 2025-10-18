@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart';
 import 'dialogs/exercise_reminder_dialog.dart';
+import 'dialogs/stats_dialog.dart';
 import 'models/activity_video.dart';
+import 'models/activity.dart';
+import 'data/activities.dart';
 import 'services/video_server.dart';
 import 'dart:io'; // For Directory
 import 'package:path/path.dart' as p; // For p.join
+import 'dart:math' as math;
 
 // Global video server instance
 final videoServer = VideoServer();
@@ -50,8 +54,14 @@ Future<void> main() async {
       print("Release mode: Serving assets from: $assetsPath");
     } else {
       // Debug mode or other platforms - assuming 'assets' is relative to project root
-      assetsPath = 'assets';
-      print("Debug mode: Serving assets from project root's: $assetsPath");
+      if (Platform.isAndroid) {
+        // For Android debug mode, use the assets directory
+        assetsPath = 'assets';
+      } else {
+        // For other platforms in debug mode
+        assetsPath = 'assets';
+      }
+      print("Debug mode: Serving assets from: $assetsPath");
     }
 
     print('Attempting to serve assets from: $assetsPath'); // For debugging
@@ -69,37 +79,26 @@ Future<void> main() async {
     print('Failed to initialize video config: $e');
   }
 
-  // Initialize window manager
-  await _initializePlugins();
+  // Initialize window manager only on desktop platforms
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = WindowOptions(
+      size: Size(800, 950), // Increased height from 700 to 850
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+    );
+
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+      await windowManager.setMinimumSize(const Size(600, 800));
+      await windowManager.setMinimizable(true);
+    });
+  }
 
   runApp(ExerciseReminderApp());
-}
-
-// Helper function to initialize all plugins
-Future<void> _initializePlugins() async {
-  // --- Window Manager Initialization ---
-  await windowManager.ensureInitialized();
-
-  // --- FIX 2: Increased window height ---
-  // The initial height is increased to 850 to ensure all buttons are visible on startup.
-  WindowOptions windowOptions = WindowOptions(
-    size: Size(800, 950), // Increased height from 700 to 850
-    center: true,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.normal,
-  );
-
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-
-    // --- FIX 1 & 2: Set minimum size and ensure minimize button is present ---
-    // This prevents the user from making the window too small to use.
-    await windowManager.setMinimumSize(const Size(600, 800));
-    // This explicitly tells the OS that the window should have a minimize button.
-    await windowManager.setMinimizable(true);
-  });
 }
 
 class ExerciseReminderApp extends StatefulWidget {
@@ -468,6 +467,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isTimerActive = false;
   bool _isReminderShowing = false;
   int _totalWorkingTime = 0; // Track total working time including snoozes
+  int _breaksTaken = 0;
+  List<ActivityStats> _activityStats = [];
+  int _totalActivityTime = 0;
 
   // Timer interval options (in seconds)
   final Map<String, int> _timerOptions = {
@@ -475,6 +477,21 @@ class _HomeScreenState extends State<HomeScreen> {
     '45 minutes': 2700,
     '60 minutes': 3600,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _resetSessionStats();
+  }
+
+  void _resetSessionStats() {
+    setState(() {
+      _breaksTaken = 0;
+      _activityStats = [];
+      _totalActivityTime = 0;
+      _totalWorkingTime = 0;
+    });
+  }
 
   @override
   void dispose() {
@@ -507,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isTimerActive = false;
       _secondsRemaining = _selectedInterval; // Reset to selected interval
-      _totalWorkingTime = 0; // Reset total working time when stopping timer
+      _resetSessionStats(); // Reset all session stats when stopping timer
     });
   }
 
@@ -516,59 +533,78 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _isReminderShowing = true;
+      _breaksTaken++;
     });
 
-    if (!await windowManager.isFocused()) {
-      await windowManager.focus();
+    // Only handle window focus on desktop platforms
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      if (!await windowManager.isFocused()) {
+        await windowManager.focus();
+      }
+      await windowManager.setAlwaysOnTop(true);
     }
-    await windowManager.setAlwaysOnTop(true);
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        void handleDismiss() {
+        void handleDismiss(List<Activity> completedActivities) {
           Navigator.of(context).pop();
-          windowManager.setAlwaysOnTop(false);
+          if (!Platform.isAndroid && !Platform.isIOS) {
+            windowManager.setAlwaysOnTop(false);
+          }
           setState(() {
             _isReminderShowing = false;
+
+            print('\n[DEBUG] Exercise Dialog Dismiss:');
+            print('Activities completed:');
+            for (var activity in completedActivities) {
+              print('${activity.name}: count=${activity.count}');
+            }
+
+            // Update activity stats
+            if (completedActivities.isNotEmpty) {
+              print('Updating activity stats...');
+              _updateActivityStats(completedActivities);
+            } else {
+              print('No activities to update stats with');
+            }
+
+            _secondsRemaining = _selectedInterval;
+            _totalWorkingTime =
+                0; // Reset total working time when taking a proper break
           });
         }
 
         return ExerciseReminderDialog(
           selectedInterval: _selectedInterval,
           totalWorkingTime: _totalWorkingTime,
-          onDismiss: () {
-            handleDismiss();
-            setState(() {
-              _secondsRemaining = _selectedInterval;
-              _totalWorkingTime =
-                  0; // Reset total working time when taking a proper break
-            });
+          onDismiss: (completedActivities) {
+            handleDismiss(completedActivities);
           },
           onSnooze1: () {
-            handleDismiss();
+            handleDismiss([]);
             setState(() {
               _secondsRemaining = 60;
               // Don't reset total working time for snooze
             });
           },
           onSnooze5: () {
-            handleDismiss();
+            handleDismiss([]);
             setState(() {
               _secondsRemaining = 300;
               // Don't reset total working time for snooze
             });
           },
           onSnooze10: () {
-            handleDismiss();
+            handleDismiss([]);
             setState(() {
               _secondsRemaining = 600;
               // Don't reset total working time for snooze
             });
           },
           onSnooze15: () {
-            handleDismiss();
+            handleDismiss([]);
             setState(() {
               _secondsRemaining = 900;
               // Don't reset total working time for snooze
@@ -583,6 +619,105 @@ class _HomeScreenState extends State<HomeScreen> {
     int minutes = seconds ~/ 60;
     int remainingSeconds = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  void _updateActivityStats(List<Activity> completedActivities) {
+    print('\n[DEBUG] Updating Activity Stats:');
+    print('Current stats before update:');
+    if (_activityStats.isEmpty) {
+      print('No existing stats');
+    } else {
+      for (var stat in _activityStats) {
+        print(
+            '${stat.activity.name}: count=${stat.count}, time=${stat.timeSpent}s');
+      }
+    }
+
+    print('\nProcessing completed activities:');
+    for (var activity in completedActivities) {
+      print('\nProcessing activity: ${activity.name}');
+      print('Current count: ${activity.count}');
+
+      // Find if we already have stats for this activity
+      int index = _activityStats
+          .indexWhere((stats) => stats.activity.id == activity.id);
+
+      if (index >= 0) {
+        // Update existing stats
+        int oldCount = _activityStats[index].count;
+        int newCount = oldCount + activity.count;
+        int timeSpent =
+            (VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
+                activity.count;
+
+        print('Updating existing stats:');
+        print('- Old count: $oldCount');
+        print('- Adding count: ${activity.count}');
+        print('- New count: $newCount');
+        print('- Adding time: ${timeSpent}s');
+
+        _activityStats[index] = ActivityStats(
+          activity: activity,
+          count: newCount,
+          timeSpent: _activityStats[index].timeSpent + timeSpent,
+        );
+      } else {
+        // Add new stats
+        int timeSpent =
+            (VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
+                activity.count;
+        print('Adding new activity stats:');
+        print('- Initial count: ${activity.count}');
+        print('- Initial time: ${timeSpent}s');
+
+        _activityStats.add(ActivityStats(
+          activity: activity,
+          count: activity.count,
+          timeSpent: timeSpent,
+        ));
+      }
+    }
+
+    // Update total activity time
+    _totalActivityTime =
+        _activityStats.fold<int>(0, (sum, stats) => sum + stats.timeSpent);
+
+    print('\nFinal stats after update:');
+    if (_activityStats.isEmpty) {
+      print('No stats recorded');
+    } else {
+      for (var stat in _activityStats) {
+        print(
+            '${stat.activity.name}: count=${stat.count}, time=${stat.timeSpent}s');
+      }
+    }
+    print('Total activity time: ${_totalActivityTime}s');
+  }
+
+  void _showStats() {
+    print('\n[DEBUG] Showing Stats Dialog:');
+    print('Breaks taken: $_breaksTaken');
+    print('Total activity time: ${_totalActivityTime}s');
+    print('Total working time: ${_totalWorkingTime}s');
+    print('Activity stats:');
+    if (_activityStats.isEmpty) {
+      print('No activities recorded');
+    } else {
+      for (var stat in _activityStats) {
+        print(
+            '${stat.activity.name}: count=${stat.count}, time=${stat.timeSpent}s');
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => StatsDialog(
+        breaksTaken: _breaksTaken,
+        activityStats: _activityStats,
+        totalActivityTime: _totalActivityTime,
+        totalWorkingTime: _totalWorkingTime,
+      ),
+    );
   }
 
   @override
@@ -657,43 +792,52 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       SizedBox(height: 15),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: _timerOptions.entries.map((entry) {
-                          bool isSelected = _selectedInterval == entry.value;
-                          return Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 4),
-                              child: ElevatedButton(
-                                onPressed: _isTimerActive
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _selectedInterval = entry.value;
-                                          _secondsRemaining = entry.value;
-                                        });
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isSelected
-                                      ? Colors.blue[600]
-                                      : Colors.grey[300],
-                                  foregroundColor: isSelected
-                                      ? Colors.white
-                                      : Colors.grey[700],
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: _timerOptions.entries.map((entry) {
+                              bool isSelected =
+                                  _selectedInterval == entry.value;
+                              return Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 4),
+                                  child: ElevatedButton(
+                                    onPressed: _isTimerActive
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _selectedInterval = entry.value;
+                                              _secondsRemaining = entry.value;
+                                            });
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isSelected
+                                          ? Colors.blue[600]
+                                          : Colors.grey[300],
+                                      foregroundColor: isSelected
+                                          ? Colors.white
+                                          : Colors.grey[700],
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        entry.key,
+                                        style: TextStyle(fontSize: 12),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                child: Text(
-                                  entry.key,
-                                  style: TextStyle(fontSize: 12),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
+                              );
+                            }).toList(),
                           );
-                        }).toList(),
+                        },
                       ),
                     ],
                   ),
@@ -726,55 +870,65 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Animated Hourglass
-                          SizedBox(
-                            width: 100,
-                            height: 120,
-                            child: CustomPaint(
-                              painter: RealisticHourglassPainter(
-                                progress: _isTimerActive
-                                    ? 1 -
-                                        (_secondsRemaining / _selectedInterval)
-                                    : 0,
-                                isActive: _isTimerActive,
-                                animationTime: _isTimerActive
-                                    ? DateTime.now().millisecondsSinceEpoch /
-                                        1000
-                                    : 0,
-                              ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Animated Hourglass
+                                SizedBox(
+                                  width: 100,
+                                  height: 120,
+                                  child: CustomPaint(
+                                    painter: RealisticHourglassPainter(
+                                      progress: _isTimerActive
+                                          ? 1 -
+                                              (_secondsRemaining /
+                                                  _selectedInterval)
+                                          : 0,
+                                      isActive: _isTimerActive,
+                                      animationTime: _isTimerActive
+                                          ? DateTime.now()
+                                                  .millisecondsSinceEpoch /
+                                              1000
+                                          : 0,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 30),
+                                // Timer Display
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _isTimerActive
+                                          ? _formatTime(_secondsRemaining)
+                                          : '--:--',
+                                      style: TextStyle(
+                                        fontSize: 42,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[600],
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      _isTimerActive
+                                          ? '${((1 - (_secondsRemaining / _selectedInterval)) * 100).toInt()}% complete'
+                                          : 'Ready to start',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
-                          SizedBox(width: 30),
-                          // Timer Display
-                          Column(
-                            children: [
-                              Text(
-                                _isTimerActive
-                                    ? _formatTime(_secondsRemaining)
-                                    : '--:--',
-                                style: TextStyle(
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue[600],
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                              SizedBox(height: 10),
-                              Text(
-                                _isTimerActive
-                                    ? '${((1 - (_secondsRemaining / _selectedInterval)) * 100).toInt()}% complete'
-                                    : 'Ready to start',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          );
+                        },
                       ),
                       SizedBox(height: 20),
                       if (_isTimerActive)
@@ -788,8 +942,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 SizedBox(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 16,
                   children: [
                     ElevatedButton.icon(
                       onPressed: _isTimerActive ? null : startTimer,
@@ -799,7 +955,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                         padding:
-                            EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                         textStyle: TextStyle(fontSize: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -814,7 +970,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
                         padding:
-                            EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                         textStyle: TextStyle(fontSize: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -824,20 +980,48 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _isTimerActive ? _showExerciseReminder : null,
-                  icon: Icon(Icons.preview),
-                  label: Text('Take a break now!'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isTimerActive ? Colors.orange : Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    textStyle: TextStyle(fontSize: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            _isTimerActive ? _showExerciseReminder : null,
+                        icon: Icon(Icons.preview),
+                        label: Text('Take a break now!'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              _isTimerActive ? Colors.orange : Colors.grey,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
+                          textStyle: TextStyle(fontSize: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 12),
+                    Flexible(
+                      child: ElevatedButton.icon(
+                        onPressed: _isTimerActive ? _showStats : null,
+                        icon: Icon(Icons.bar_chart),
+                        label: Text('Show Stats'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              _isTimerActive ? Colors.purple : Colors.grey,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
+                          textStyle: TextStyle(fontSize: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 30),
                 Container(
