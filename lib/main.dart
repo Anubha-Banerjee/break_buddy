@@ -633,6 +633,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    // Completed activities now contain the actual number of completed repetitions
+
     print('\nProcessing completed activities:');
     for (var activity in completedActivities) {
       print('\nProcessing activity: ${activity.name}');

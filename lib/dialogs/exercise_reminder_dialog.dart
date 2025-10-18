@@ -155,7 +155,16 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 activityName: activity.name,
                 isLastActivity: isLastActivity,
                 nextActivityName: nextActivityName,
-                onComplete: () async {
+                onComplete: (int completedCount) async {
+                  // Update the activity count with actual completed reps
+                  setState(() {
+                    final index =
+                        activities.indexWhere((a) => a.id == activity.id);
+                    if (index != -1) {
+                      activities[index] =
+                          activities[index].copyWith(count: completedCount);
+                    }
+                  });
                   if (mounted) {
                     Navigator.of(context).pop();
 
@@ -401,8 +410,20 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                         child: ElevatedButton.icon(
                           onPressed: () {
                             // Get completed activities
-                            final completedActivities =
-                                activities.where((a) => a.count > 0).toList();
+                            // Get activities that have been started or completed
+                            final completedActivities = activities.where((a) {
+                              if (a.count > 0) {
+                                // If the activity was in progress but not completed, count only the actual reps
+                                if (_currentActivityIndex != -1 &&
+                                    activities[_currentActivityIndex].id ==
+                                        a.id) {
+                                  return true;
+                                }
+                                // Otherwise include if it was selected
+                                return true;
+                              }
+                              return false;
+                            }).toList();
                             widget.onDismiss(completedActivities);
                           },
                           icon: const Icon(Icons.check_circle, size: 18),

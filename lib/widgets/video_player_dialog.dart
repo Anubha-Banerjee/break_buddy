@@ -1,17 +1,18 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'dart:math';
 
 class VideoPlayerDialog extends StatefulWidget {
   final String videoPath;
   final int durationInSeconds;
-  final VoidCallback onComplete;
-  final int repeatCount;
+  final Function(int completedCount) onComplete;
   final String activityName;
+  final int repeatCount;
   final bool isLastActivity;
-  final String? nextActivityName; // Add next activity name
+  final String? nextActivityName;
 
   const VideoPlayerDialog({
     Key? key,
@@ -19,7 +20,7 @@ class VideoPlayerDialog extends StatefulWidget {
     required this.durationInSeconds,
     required this.onComplete,
     required this.activityName,
-    this.repeatCount = 0, // 0 means continuous loop
+    this.repeatCount = 0,
     this.isLastActivity = false,
     this.nextActivityName,
   }) : super(key: key);
@@ -47,8 +48,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     super.initState();
     _player = Player();
     _videoController = VideoController(_player);
-    _playCount = 1; // Explicitly start at 0
-    _lastPosition = null; // Reset position tracking
+    _playCount = 1;
+    _lastPosition = null;
     _showingNextActivityPopup = false;
     print(
         'Initializing video player for ${widget.activityName} with ${widget.repeatCount} repeats');
@@ -60,47 +61,48 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       print(
           'Initializing video player for: ${widget.videoPath} (Attempt ${_initializeAttempts + 1}/$maxAttempts)');
 
-      await _player.open(Media(widget.videoPath));
-      await _player.setVolume(100);
+      String videoPath = widget.videoPath;
+      if (Platform.isAndroid) {
+        // For Android, we need to add the asset:/// scheme
+        if (!videoPath.startsWith('asset:///')) {
+          // The video server gives us the raw path, we need to add the asset:/// scheme
+          videoPath = 'asset:///$videoPath';
+        }
+        print('Android video path: $videoPath');
+      }
 
-      // For counted repeats, use single mode and handle looping ourselves
-      // For continuous play (count=0), use loop mode
+      await _player.open(Media(videoPath));
+      await _player.setVolume(100);
       await _player.setPlaylistMode(PlaylistMode.single);
 
-      // Reset all state variables
       _playCount = 1;
       _videoCompleted = false;
       _lastPosition = null;
 
-      // Set up playback monitoring if we need to count repeats
       if (widget.repeatCount > 0) {
         print(
             'Setting up playback monitoring for ${widget.repeatCount} repeats');
 
-        // Monitor position changes to track progress
         bool hasReachedEnd = false;
         _player.stream.position.listen((position) async {
           final currentPositionMs = position.inMilliseconds;
           final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
           final durationMs = widget.durationInSeconds * 1000;
 
-          // Print position updates for debugging
           print(
               'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms');
 
-          // Detect completion when we reach near the end of the video
           if (!hasReachedEnd && currentPositionMs >= (durationMs - 200)) {
             print('Reached end of video');
             hasReachedEnd = true;
           }
 
-          // Detect loop when we go back to start after reaching end
           if (hasReachedEnd && currentPositionMs < 200 && !_videoCompleted) {
             print('Loop detected: Video restarted from beginning');
             hasReachedEnd = false;
 
             if (mounted) {
-              _videoCompleted = true; // Mark this loop as completed
+              _videoCompleted = true;
               int unboundedPlayCount = 0;
               setState(() {
                 unboundedPlayCount = _playCount + 1;
@@ -116,23 +118,19 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
                 if (mounted) {
                   setState(() {
-                    // Only show the transition message if this is not the last activity
                     _showingNextActivityPopup = !widget.isLastActivity;
                   });
 
-                  // If showing the transition message, wait before completing
                   if (_showingNextActivityPopup) {
                     await Future.delayed(const Duration(seconds: 4));
                   }
 
                   if (mounted) {
-                    widget.onComplete();
+                    widget.onComplete(_playCount);
                   }
                 }
               } else {
-                // Reset for next loop
                 _videoCompleted = false;
-                // Ensure we continue playing
                 if (mounted) {
                   await _player.play();
                 }
@@ -140,7 +138,6 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             }
           } else if (currentPositionMs > 200 &&
               currentPositionMs < (durationMs - 200)) {
-            // Reset flags when we're in the middle of the video
             _videoCompleted = false;
             hasReachedEnd = false;
           }
@@ -148,7 +145,6 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
           _lastPosition = position;
         });
 
-        // Backup monitoring through completed event for smoother looping
         _playbackSubscription =
             _player.stream.completed.listen((completed) async {
           print(
@@ -161,7 +157,6 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
           }
         });
 
-        // Monitor playback state for debugging
         _player.stream.playing.listen((playing) {
           print(
               'Playback state changed: playing=$playing, count=$_playCount/${widget.repeatCount}');
@@ -169,8 +164,6 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       }
 
       await _player.play();
-
-      // Give the video controller time to initialize
       await Future.delayed(const Duration(milliseconds: 100));
       print('Video initialized successfully');
 
@@ -225,7 +218,13 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               const Text('Failed to load video after multiple attempts.'),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if (_playCount > 0) {
+                    widget.onComplete(_playCount);
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
                 child: const Text('Close'),
               ),
             ],
@@ -297,9 +296,9 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               ),
               Container(
                 padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.black87,
-                  borderRadius: const BorderRadius.only(
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(8),
                     bottomRight: Radius.circular(8),
                   ),
@@ -319,7 +318,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => widget.onComplete(),
+                          onPressed: () => widget.onComplete(_playCount),
                           icon: const Icon(Icons.skip_next),
                           label: const Text('Next'),
                           style: ElevatedButton.styleFrom(
@@ -329,8 +328,12 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            Navigator.of(context)
-                                .pop(); // Close video dialog only
+                            // When quitting early, ensure we pass back completion
+                            if (_playCount > 0) {
+                              widget.onComplete(_playCount);
+                            } else {
+                              Navigator.of(context).pop();
+                            }
                           },
                           icon: const Icon(Icons.close),
                           label: const Text('Quit'),

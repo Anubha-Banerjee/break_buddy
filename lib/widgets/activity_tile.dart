@@ -64,7 +64,10 @@ class _ActivityTileState extends State<ActivityTile> {
                       durationInSeconds: video.duration,
                       repeatCount: widget.activity.count,
                       activityName: widget.activity.name,
-                      onComplete: () => Navigator.of(context).pop(),
+                      onComplete: (completedCount) {
+                        widget.onCountChanged(completedCount);
+                        Navigator.of(context).pop();
+                      },
                     ),
                   );
                 } else {
