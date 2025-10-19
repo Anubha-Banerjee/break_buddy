@@ -6,6 +6,8 @@ import 'dialogs/exercise_reminder_dialog.dart';
 import 'dialogs/stats_dialog.dart';
 import 'models/activity_video.dart';
 import 'models/activity.dart';
+import 'models/activity_sequence.dart';
+import 'services/activity_sequence_service.dart';
 import 'data/activities.dart';
 import 'services/video_server.dart';
 import 'dart:io'; // For Directory
@@ -470,6 +472,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _breaksTaken = 0;
   List<ActivityStats> _activityStats = [];
   int _totalActivityTime = 0;
+  final ActivitySequenceService _sequenceService = ActivitySequenceService();
+  List<Activity> _savedSequences = [];
 
   // Timer interval options (in seconds)
   final Map<String, int> _timerOptions = {
@@ -482,6 +486,29 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _resetSessionStats();
+    _loadSavedSequences();
+  }
+
+  Future<void> _loadSavedSequences() async {
+    final sequences = await _sequenceService.loadSequences();
+    setState(() {
+      // First remove any existing sequences from predefined activities
+      predefinedActivities
+          .removeWhere((activity) => activity.id.startsWith('seq_'));
+
+      // Convert sequences to activities that can be shown in the grid
+      _savedSequences = sequences
+          .map((seq) => Activity(
+                id: 'seq_${seq.id}',
+                name: seq.name,
+                icon: Icons.playlist_play,
+                count: 0,
+              ))
+          .toList();
+
+      // Add saved sequences to predefined activities
+      predefinedActivities.addAll(_savedSequences);
+    });
   }
 
   void _resetSessionStats() {
@@ -582,6 +609,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onDismiss: (completedActivities) {
             handleDismiss(completedActivities);
           },
+          sequenceService: _sequenceService,
           onSnooze1: () {
             handleDismiss([]);
             setState(() {

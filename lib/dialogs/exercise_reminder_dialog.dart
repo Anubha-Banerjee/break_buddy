@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/activity.dart';
 import '../models/activity_video.dart';
+import '../models/activity_sequence.dart';
 import '../widgets/activity_grid.dart';
 import '../widgets/video_player_dialog.dart';
 import '../data/activities.dart';
+import '../services/activity_sequence_service.dart';
+import '../utils/sequence_expander.dart';
 
 class ExerciseReminderDialog extends StatefulWidget {
   final int selectedInterval;
@@ -14,6 +17,7 @@ class ExerciseReminderDialog extends StatefulWidget {
   final VoidCallback onSnooze10;
   final VoidCallback onSnooze15;
   final double dialogHeight; // Height of the dialog
+  final ActivitySequenceService? sequenceService;
 
   const ExerciseReminderDialog({
     super.key,
@@ -25,6 +29,7 @@ class ExerciseReminderDialog extends StatefulWidget {
     required this.onSnooze10,
     required this.onSnooze15,
     this.dialogHeight = 850, // Default height
+    this.sequenceService,
   });
 
   @override
@@ -35,11 +40,144 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   late List<Activity> activities;
   int _currentActivityIndex = -1;
   bool _isPlayingSequence = false;
+  final TextEditingController _sequenceNameController = TextEditingController();
+
+  Future<void> _showSaveSequenceDialog(BuildContext context) async {
+    _sequenceNameController.text =
+        'Sequence ${DateTime.now().toString().substring(0, 16)}';
+
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Activity Sequence'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Name your sequence:'),
+            TextField(
+              controller: _sequenceNameController,
+              decoration: const InputDecoration(
+                hintText: 'Enter sequence name',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_sequenceNameController.text.isNotEmpty &&
+                  widget.sequenceService != null) {
+                // Filter out any sequence activities and only save original activities
+                final selectedActivities = activities
+                    .where((a) => a.count > 0 && !a.id.startsWith('seq_'))
+                    .map((a) {
+                  print('Saving activity in sequence: ${a.name} (${a.id})');
+                  print('Selection time: ${a.selectionTime}');
+                  return Activity(
+                    id: a.id,
+                    name: a.name,
+                    icon: a.icon,
+                    count: a.count,
+                    selectionTime: a.selectionTime,
+                  );
+                }).toList();
+
+                if (selectedActivities.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please select some activities to save'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                final sequence = ActivitySequence(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  name: _sequenceNameController.text,
+                  activities: selectedActivities,
+                  createdAt: DateTime.now(),
+                );
+
+                print('Saving sequence with activities:');
+                for (var activity in selectedActivities) {
+                  print(
+                      '- ${activity.name} (ID: ${activity.id}) with count: ${activity.count}');
+                }
+
+                // Add sequence to predefined activities
+                setState(() {
+                  activities.add(Activity(
+                    id: 'seq_${sequence.id}',
+                    name: sequence.name,
+                    icon: Icons.playlist_play,
+                    count: 0,
+                  ));
+                });
+
+                // Save the sequence
+                await widget.sequenceService!.addSequenceAndNotify(sequence);
+
+                Navigator.of(context).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Sequence "${_sequenceNameController.text}" saved!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    _initializeActivities();
+  }
+
+  Future<void> _initializeActivities() async {
+    print('\nInitializing activities...');
+    // Start with predefined activities
     activities = List.from(predefinedActivities);
+
+    // Load saved sequences
+    if (widget.sequenceService != null) {
+      // Clear any existing sequences first
+      activities.removeWhere((a) => a.id.startsWith('seq_'));
+
+      // Load fresh sequences from storage
+      final loadedSequences = await widget.sequenceService!.loadSequences();
+      print('Loaded ${loadedSequences.length} sequences');
+
+      // Add sequence activities
+      if (loadedSequences.isNotEmpty) {
+        final sequenceActivities = loadedSequences.map((seq) {
+          print('Adding sequence: ${seq.name} (${seq.id})');
+          return Activity(
+            id: 'seq_${seq.id}',
+            name: seq.name,
+            icon: Icons.playlist_play,
+            count: 0,
+          );
+        }).toList();
+
+        setState(() {
+          activities.addAll(sequenceActivities);
+        });
+      }
+    }
   }
 
   void _onActivityCountChanged(String id, int newCount) {
@@ -48,10 +186,29 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       if (index != -1) {
         // If count is changing from 0 to a positive number, record the selection time
         if (activities[index].count == 0 && newCount > 0) {
+          final now = DateTime.now();
+          print('\nActivity selected: ${activities[index].name} at $now');
           activities[index] = activities[index].copyWith(
             count: newCount,
-            selectionTime: DateTime.now(),
+            selectionTime: now,
           );
+
+          // Debug: Print all selected activities in order
+          print('\nCurrent selected activities in order:');
+          final selectedActivities = activities
+              .where((a) => a.count > 0 && !a.id.startsWith('seq_'))
+              .toList();
+          selectedActivities.sort((a, b) {
+            final aTime = a.selectionTime;
+            final bTime = b.selectionTime;
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return aTime.compareTo(bTime);
+          });
+          for (var a in selectedActivities) {
+            print('- ${a.name} selected at ${a.selectionTime}');
+          }
         } else {
           // If count is being set to 0, clear the selection time
           activities[index] = activities[index].copyWith(
@@ -71,14 +228,56 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       return;
     }
 
-    // Get activities with count > 0 and sort by selection time
+    // First check if we have any sequences that need expansion
+    bool hasSequences =
+        activities.any((a) => a.count > 0 && a.id.startsWith('seq_'));
+    if (hasSequences && widget.sequenceService != null) {
+      print('\nExpanding sequences before playing videos');
+      final expandedActivities = SequenceExpander.expandAllSequences(
+        activities,
+        widget.sequenceService!,
+      );
+      // Find all sequence activities that need to be replaced
+      final sequenceActivities = activities
+          .where((a) => a.count > 0 && a.id.startsWith('seq_'))
+          .toList();
+
+      setState(() {
+        // Remove the sequence activities
+        activities.removeWhere((a) => sequenceActivities.contains(a));
+        // Add the expanded activities
+        activities.addAll(expandedActivities);
+
+        // Sort all activities by their selection time
+        activities.sort((a, b) {
+          final aTime = a.selectionTime;
+          final bTime = b.selectionTime;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return aTime.compareTo(bTime);
+        });
+      });
+      print('\nExpanded activities:');
+      expandedActivities
+          .forEach((a) => print('- ${a.name} (${a.id}): ${a.count}'));
+    }
+
+    // Get only activities that have videos and are not sequences
     var selectedActivities = activities
         .where((activity) =>
             activity.count > 0 &&
-            activity.selectionTime != null &&
+            !activity.id.startsWith('seq_') &&
             VideoConfig.getVideoForTask(activity.id) != null)
         .toList()
-      ..sort((a, b) => a.selectionTime!.compareTo(b.selectionTime!));
+      ..sort((a, b) {
+        final aTime = a.selectionTime;
+        final bTime = b.selectionTime;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return aTime.compareTo(bTime);
+      });
 
     // Find the next activity after current index
     Activity? nextActivity;
@@ -95,6 +294,11 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
     }
 
     if (nextActivity != null) {
+      print('\nPlaying next activity...');
+      print('Selected activities in playback order:');
+      selectedActivities.forEach(
+          (a) => print('- ${a.name} (selected at ${a.selectionTime})'));
+
       _currentActivityIndex =
           activities.indexWhere((a) => a.id == nextActivity!.id);
       final activity = activities[_currentActivityIndex];
@@ -123,8 +327,6 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
               int currentSortedIndex =
                   sortedActivities.indexWhere((a) => a.id == activity.id);
-              bool hasMoreActivities =
-                  currentSortedIndex < sortedActivities.length - 1;
 
               // Get all remaining activities to determine if this is the last one
               var remainingActivities = activities
@@ -168,7 +370,23 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                   if (mounted) {
                     Navigator.of(context).pop();
 
-                    if (currentSortedIndex >= sortedActivities.length - 1) {
+                    setState(() {
+                      // Mark this activity as completed by setting count to 0
+                      final index =
+                          activities.indexWhere((a) => a.id == activity.id);
+                      if (index != -1) {
+                        activities[index] =
+                            activities[index].copyWith(count: 0);
+                      }
+                    });
+
+                    // Check if there are any remaining activities with count > 0
+                    final hasRemainingActivities = activities.any((a) =>
+                        a.count > 0 &&
+                        !a.id.startsWith('seq_') &&
+                        VideoConfig.getVideoForTask(a.id) != null);
+
+                    if (!hasRemainingActivities) {
                       // If this was the last activity, show completion dialog
                       await showDialog(
                         context: context,
@@ -192,12 +410,10 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                           ],
                         ),
                       );
-                    } else {
+                    } else if (_isPlayingSequence) {
                       // Move to next video after transition
-                      if (_isPlayingSequence) {
-                        Future.delayed(
-                            const Duration(milliseconds: 500), _playNextVideo);
-                      }
+                      Future.delayed(
+                          const Duration(milliseconds: 500), _playNextVideo);
                     }
                   }
                 },
@@ -225,11 +441,48 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   }
 
   void _startActivitySequence() {
-    print('Start Activities button clicked');
-    print('Current activities and their counts:');
-    for (var activity in activities) {
-      print('${activity.name}: ${activity.count}');
+    print('\nStart Activities button clicked');
+    print('Current activities with counts:');
+    activities
+        .where((a) => a.count > 0)
+        .forEach((a) => print('- ${a.name} (${a.id}): ${a.count}'));
+
+    if (widget.sequenceService == null) {
+      print('ERROR: No sequence service available');
+      return;
     }
+
+    // Store original activities order
+    final originalOrder = List<Activity>.from(activities);
+
+    // Create a list to hold activities to be played
+    List<Activity> activitiesToPlay = [];
+    List<Activity> sequencesToRemove = [];
+
+    // Process each selected activity
+    for (var activity in originalOrder) {
+      if (activity.count > 0) {
+        if (activity.id.startsWith('seq_')) {
+          print('\nExpanding sequence: ${activity.name}');
+          sequencesToRemove.add(activity);
+          // Expand sequence into its component activities
+          final expandedActivities = SequenceExpander.expandSequence(
+            activity,
+            widget.sequenceService!,
+          );
+          // Keep original order within sequence
+          activitiesToPlay.addAll(expandedActivities);
+        } else {
+          // Keep original activity
+          activitiesToPlay.add(activity.copyWith(
+            selectionTime: activity.selectionTime ?? DateTime.now(),
+          ));
+        }
+      }
+    }
+
+    print('\nFinal activity list for playback:');
+    activitiesToPlay.forEach((a) => print('- ${a.name} (${a.id}): ${a.count}'));
 
     // If there's a sequence in progress, stop it first
     if (_isPlayingSequence) {
@@ -240,13 +493,32 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       });
     }
 
-    // Start a new sequence after a brief delay to ensure cleanup
+    // Update activities list with expanded version and start playback
+    setState(() {
+      // Keep original activities but update with expanded ones
+      activities = List<Activity>.from(originalOrder);
+
+      // Remove sequence activities
+      activities.removeWhere((a) => sequencesToRemove.contains(a));
+
+      // Add expanded activities while maintaining original order
+      for (var activity in activitiesToPlay) {
+        // Find existing activity or add new one at the end
+        final existingIndex = activities.indexWhere((a) => a.id == activity.id);
+        if (existingIndex != -1) {
+          activities[existingIndex] = activity;
+        } else {
+          activities.add(activity);
+        }
+      }
+
+      _isPlayingSequence = true;
+      _currentActivityIndex = -1;
+    });
+
+    // Start playback after a brief delay
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
-        setState(() {
-          _isPlayingSequence = true;
-          _currentActivityIndex = -1;
-        });
         _playNextVideo();
       }
     });
@@ -331,6 +603,118 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
               child: ActivityGrid(
                 activities: activities,
                 onActivityCountChanged: _onActivityCountChanged,
+                onDeleteSequence: (sequence) async {
+                  if (widget.sequenceService != null) {
+                    final sequenceId =
+                        sequence.id.substring(4); // Remove 'seq_' prefix
+                    print('\nDeleting sequence: $sequenceId');
+
+                    // First verify sequence exists
+                    final existingSequence =
+                        widget.sequenceService!.getSequenceById(sequenceId);
+                    if (existingSequence == null) {
+                      print(
+                          'Sequence not found in storage, cleaning up UI only');
+                      setState(() {
+                        activities.removeWhere((a) => a.id == sequence.id);
+                      });
+                      return;
+                    }
+
+                    try {
+                      // Remove from UI immediately
+                      setState(() {
+                        activities.removeWhere((a) => a.id == sequence.id);
+                      });
+
+                      // Delete from storage
+                      final deleted = await widget.sequenceService!
+                          .deleteSequence(sequenceId);
+
+                      if (deleted) {
+                        // Show success message
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content:
+                                  Text('Sequence "${sequence.name}" deleted'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+
+                        // Reload activities to ensure everything is in sync
+                        await _initializeActivities();
+                      } else {
+                        print('Failed to delete sequence from storage');
+                        // Show error message
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to delete sequence'),
+                              backgroundColor: Colors.red,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      print('Error deleting sequence: $e');
+                      // Show error message
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error deleting sequence: $e'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                onPlaySequence: (sequence) {
+                  if (widget.sequenceService == null) return;
+
+                  // Keep a copy of the sequence activity for later
+                  final sequenceActivity =
+                      activities.firstWhere((a) => a.id == sequence.id);
+
+                  // Set count to 1 and start sequence
+                  setState(() {
+                    final index =
+                        activities.indexWhere((a) => a.id == sequence.id);
+                    if (index != -1) {
+                      activities[index] = activities[index].copyWith(
+                        count: 1,
+                        selectionTime: DateTime.now(),
+                      );
+                    }
+                  });
+
+                  // Start the sequence
+                  _startActivitySequence();
+
+                  // After a delay to let the sequence start, restore the sequence activity
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (mounted) {
+                      setState(() {
+                        // First check if sequence still exists in storage
+                        final sequenceStillExists = widget.sequenceService!
+                                .getSequenceById(sequence.id.substring(4)) !=
+                            null;
+
+                        if (sequenceStillExists) {
+                          // Remove any old instances of this sequence
+                          activities.removeWhere((a) => a.id == sequence.id);
+                          // Add the sequence back with count = 0
+                          activities.add(sequenceActivity.copyWith(count: 0));
+                        }
+                      });
+                    }
+                  });
+                },
               ),
             ),
             Padding(
@@ -396,6 +780,26 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                             backgroundColor: (widget.selectedInterval > 0 &&
                                     activities.any((a) => a.count > 0))
                                 ? Colors.blue[600]
+                                : Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: activities.any((a) => a.count > 0)
+                              ? () => _showSaveSequenceDialog(context)
+                              : null,
+                          icon: const Icon(Icons.save, size: 18),
+                          label: const Text('Save Activities'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: activities.any((a) => a.count > 0)
+                                ? Colors.green[600]
                                 : Colors.grey,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
