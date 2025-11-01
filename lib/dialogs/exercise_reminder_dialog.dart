@@ -370,6 +370,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                   if (mounted) {
                     Navigator.of(context).pop();
 
+                    /*
                     setState(() {
                       // Mark this activity as completed by setting count to 0
                       final index =
@@ -378,7 +379,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                         activities[index] =
                             activities[index].copyWith(count: 0);
                       }
-                    });
+                    });*/
 
                     // Check if there are any remaining activities with count > 0
                     final hasRemainingActivities = activities.any((a) =>
