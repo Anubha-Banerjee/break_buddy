@@ -328,12 +328,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // When quitting early, ensure we pass back completion
-                            if (_playCount > 0) {
-                              widget.onComplete(_playCount);
-                            } else {
-                              Navigator.of(context).pop();
-                            }
+                            // When quitting, pass -1 to signal sequence termination
+                            widget.onComplete(-1);
                           },
                           icon: const Icon(Icons.close),
                           label: const Text('Quit'),

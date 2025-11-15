@@ -38,6 +38,8 @@ class ExerciseReminderDialog extends StatefulWidget {
 
 class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   late List<Activity> activities;
+  late Map<String, int>
+      completedActivityCounts; // Track activity ID -> completion count
   int _currentActivityIndex = -1;
   bool _isPlayingSequence = false;
   final TextEditingController _sequenceNameController = TextEditingController();
@@ -144,6 +146,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   @override
   void initState() {
     super.initState();
+    completedActivityCounts = {};
     _initializeActivities();
   }
 
@@ -358,59 +361,73 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 isLastActivity: isLastActivity,
                 nextActivityName: nextActivityName,
                 onComplete: (int completedCount) async {
-                  // Update the activity count with actual completed reps
-                  setState(() {
-                    final index =
-                        activities.indexWhere((a) => a.id == activity.id);
-                    if (index != -1) {
-                      activities[index] =
-                          activities[index].copyWith(count: completedCount);
-                    }
-                  });
                   if (mounted) {
                     Navigator.of(context).pop();
 
-                    /*
+                    // Check if user clicked quit (-1 signal)
+                    if (completedCount == -1) {
+                      print('User quit the sequence');
+                      // Stop the entire sequence
+                      setState(() {
+                        _isPlayingSequence = false;
+                        _currentActivityIndex = -1;
+                      });
+                      return;
+                    }
+
+                    // Use the actual completed count from the video player
+                    // This handles cases where user quits before completing all reps
+                    final actualCompletedCount =
+                        completedCount > 0 ? completedCount : 0;
+
+                    // Mark this activity as completed in our tracking map
                     setState(() {
-                      // Mark this activity as completed by setting count to 0
+                      completedActivityCounts[activity.id] =
+                          actualCompletedCount;
                       final index =
                           activities.indexWhere((a) => a.id == activity.id);
                       if (index != -1) {
                         activities[index] =
                             activities[index].copyWith(count: 0);
                       }
-                    });*/
+                    });
 
                     // Check if there are any remaining activities with count > 0
-                    final hasRemainingActivities = activities.any((a) =>
-                        a.count > 0 &&
-                        !a.id.startsWith('seq_') &&
-                        VideoConfig.getVideoForTask(a.id) != null);
+                    final hasRemainingActivities = activities.any((a) {
+                      if (a.id == activity.id) {
+                        return false;
+                      }
+                      return a.count > 0 &&
+                          !a.id.startsWith('seq_') &&
+                          VideoConfig.getVideoForTask(a.id) != null;
+                    });
 
                     if (!hasRemainingActivities) {
                       // If this was the last activity, show completion dialog
-                      await showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) => AlertDialog(
-                          title: const Text('All Activities Completed! 🎉'),
-                          content: const Text(
-                              'Great job! You\'ve completed all your activities.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context)
-                                    .pop(); // Close alert dialog
-                                setState(() {
-                                  _isPlayingSequence = false;
-                                  _currentActivityIndex = -1;
-                                });
-                              },
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        ),
-                      );
+                      if (mounted) {
+                        await showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => AlertDialog(
+                            title: const Text('All Activities Completed! 🎉'),
+                            content: const Text(
+                                'Great job! You\'ve completed all your activities.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context)
+                                      .pop(); // Close alert dialog
+                                  setState(() {
+                                    _isPlayingSequence = false;
+                                    _currentActivityIndex = -1;
+                                  });
+                                },
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                     } else if (_isPlayingSequence) {
                       // Move to next video after transition
                       Future.delayed(
@@ -814,21 +831,21 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            // Get completed activities
-                            // Get activities that have been started or completed
-                            final completedActivities = activities.where((a) {
-                              if (a.count > 0) {
-                                // If the activity was in progress but not completed, count only the actual reps
-                                if (_currentActivityIndex != -1 &&
-                                    activities[_currentActivityIndex].id ==
-                                        a.id) {
-                                  return true;
-                                }
-                                // Otherwise include if it was selected
-                                return true;
-                              }
-                              return false;
-                            }).toList();
+                            // Get completed activities and restore their counts from our tracking map
+                            final completedActivities = activities
+                                .where((a) =>
+                                    completedActivityCounts.containsKey(a.id))
+                                .map((a) => a.copyWith(
+                                      count: completedActivityCounts[a.id] ?? 0,
+                                    ))
+                                .toList();
+
+                            print('\nCompleted activities for stats:');
+                            for (var activity in completedActivities) {
+                              print(
+                                  '- ${activity.name} (${activity.id}): count=${activity.count}');
+                            }
+
                             widget.onDismiss(completedActivities);
                           },
                           icon: const Icon(Icons.check_circle, size: 18),
