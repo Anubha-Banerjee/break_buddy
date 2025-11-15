@@ -113,10 +113,19 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
                 // Add sequence to predefined activities
                 setState(() {
+                  // Get the first activity's icon and thumbnail from the sequence
+                  final firstActivityIcon = sequence.activities.isNotEmpty
+                      ? sequence.activities.first.icon
+                      : Icons.playlist_play;
+                  final firstActivityThumbnail = sequence.activities.isNotEmpty
+                      ? sequence.activities.first.thumbnailPath
+                      : null;
+
                   activities.add(Activity(
                     id: 'seq_${sequence.id}',
                     name: sequence.name,
-                    icon: Icons.playlist_play,
+                    icon: firstActivityIcon,
+                    thumbnailPath: firstActivityThumbnail,
                     count: 0,
                   ));
                 });
@@ -168,10 +177,18 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       if (loadedSequences.isNotEmpty) {
         final sequenceActivities = loadedSequences.map((seq) {
           print('Adding sequence: ${seq.name} (${seq.id})');
+          // Get the first activity's icon and thumbnail from the sequence
+          final firstActivityIcon = seq.activities.isNotEmpty
+              ? seq.activities.first.icon
+              : Icons.playlist_play;
+          final firstActivityThumbnail = seq.activities.isNotEmpty
+              ? seq.activities.first.thumbnailPath
+              : null;
           return Activity(
             id: 'seq_${seq.id}',
             name: seq.name,
-            icon: Icons.playlist_play,
+            icon: firstActivityIcon,
+            thumbnailPath: firstActivityThumbnail,
             count: 0,
           );
         }).toList();
@@ -695,16 +712,18 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 onPlaySequence: (sequence) {
                   if (widget.sequenceService == null) return;
 
-                  // Keep a copy of the sequence activity for later
-                  final sequenceActivity =
-                      activities.firstWhere((a) => a.id == sequence.id);
+                  // Keep the original index and a copy of the sequence activity to restore it later
+                  final originalIndex =
+                      activities.indexWhere((a) => a.id == sequence.id);
+                  final sequenceActivityCopy = originalIndex != -1
+                      ? activities[originalIndex].copyWith()
+                      : null;
 
                   // Set count to 1 and start sequence
                   setState(() {
-                    final index =
-                        activities.indexWhere((a) => a.id == sequence.id);
-                    if (index != -1) {
-                      activities[index] = activities[index].copyWith(
+                    if (originalIndex != -1) {
+                      activities[originalIndex] =
+                          activities[originalIndex].copyWith(
                         count: 1,
                         selectionTime: DateTime.now(),
                       );
@@ -716,18 +735,32 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
                   // After a delay to let the sequence start, restore the sequence activity
                   Future.delayed(const Duration(milliseconds: 100), () {
-                    if (mounted) {
+                    if (mounted && sequenceActivityCopy != null) {
                       setState(() {
-                        // First check if sequence still exists in storage
+                        // Check if the sequence still exists in storage
                         final sequenceStillExists = widget.sequenceService!
                                 .getSequenceById(sequence.id.substring(4)) !=
                             null;
 
                         if (sequenceStillExists) {
-                          // Remove any old instances of this sequence
-                          activities.removeWhere((a) => a.id == sequence.id);
-                          // Add the sequence back with count = 0
-                          activities.add(sequenceActivity.copyWith(count: 0));
+                          // Find the sequence in the current activities list
+                          final currentIndex = activities.indexWhere(
+                              (a) => a.id == sequenceActivityCopy.id);
+
+                          if (currentIndex != -1) {
+                            // Restore with count = 0
+                            activities[currentIndex] =
+                                sequenceActivityCopy.copyWith(count: 0);
+                          } else {
+                            // If not found, add it back at the original position
+                            if (originalIndex <= activities.length) {
+                              activities.insert(originalIndex,
+                                  sequenceActivityCopy.copyWith(count: 0));
+                            } else {
+                              activities
+                                  .add(sequenceActivityCopy.copyWith(count: 0));
+                            }
+                          }
                         }
                       });
                     }

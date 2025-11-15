@@ -62,7 +62,18 @@ class SequenceExpander {
     for (var activity in activities) {
       if (activity.count > 0) {
         if (activity.id.startsWith('seq_')) {
-          result.addAll(expandSequence(activity, service));
+          // Get the sequence's selection time to use for all its expanded activities
+          final sequenceSelectionTime = activity.selectionTime;
+          final expandedActivities = expandSequence(activity, service);
+
+          // Use the sequence's selection time for all expanded activities
+          if (sequenceSelectionTime != null) {
+            result.addAll(expandedActivities
+                .map((a) => a.copyWith(selectionTime: sequenceSelectionTime))
+                .toList());
+          } else {
+            result.addAll(expandedActivities);
+          }
         } else {
           result.add(activity.copyWith());
         }

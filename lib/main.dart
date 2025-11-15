@@ -497,14 +497,22 @@ class _HomeScreenState extends State<HomeScreen> {
           .removeWhere((activity) => activity.id.startsWith('seq_'));
 
       // Convert sequences to activities that can be shown in the grid
-      _savedSequences = sequences
-          .map((seq) => Activity(
-                id: 'seq_${seq.id}',
-                name: seq.name,
-                icon: Icons.playlist_play,
-                count: 0,
-              ))
-          .toList();
+      _savedSequences = sequences.map((seq) {
+        // Get the first activity's icon and thumbnail from the sequence
+        final firstActivityIcon = seq.activities.isNotEmpty
+            ? seq.activities.first.icon
+            : Icons.playlist_play;
+        final firstActivityThumbnail = seq.activities.isNotEmpty
+            ? seq.activities.first.thumbnailPath
+            : null;
+        return Activity(
+          id: 'seq_${seq.id}',
+          name: seq.name,
+          icon: firstActivityIcon,
+          thumbnailPath: firstActivityThumbnail,
+          count: 0,
+        );
+      }).toList();
 
       // Add saved sequences to predefined activities
       predefinedActivities.addAll(_savedSequences);

@@ -30,6 +30,8 @@ class Activity {
       id: id ?? this.id,
       name: name ?? this.name,
       icon: icon ?? this.icon,
+      videoPath: videoPath,
+      thumbnailPath: thumbnailPath,
       count: count ?? this.count,
       selectionTime: selectionTime ?? this.selectionTime,
     );

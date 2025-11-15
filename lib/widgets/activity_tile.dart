@@ -38,43 +38,46 @@ class _ActivityTileState extends State<ActivityTile> {
               ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.activity.count.toString(),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            final video = VideoConfig.getVideoForTask(widget.activity.id);
+            if (video != null) {
+              print(
+                  'Playing video: ${video.videoPath} for ${video.duration} seconds');
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => VideoPlayerDialog(
+                  videoPath: video.videoPath,
+                  durationInSeconds: video.duration,
+                  repeatCount: widget.activity.count,
+                  activityName: widget.activity.name,
+                  onComplete: (completedCount) {
+                    // Ensure count never goes below 0
+                    final validCount = completedCount < 0 ? 0 : completedCount;
+                    widget.onCountChanged(validCount);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              );
+            } else {
+              print('No video found for activity: ${widget.activity.id}');
+            }
+          },
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.activity.count.toString(),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            GestureDetector(
-              onTap: () async {
-                final video = VideoConfig.getVideoForTask(widget.activity.id);
-                if (video != null) {
-                  print(
-                      'Playing video: ${video.videoPath} for ${video.duration} seconds');
-                  await showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => VideoPlayerDialog(
-                      videoPath: video.videoPath,
-                      durationInSeconds: video.duration,
-                      repeatCount: widget.activity.count,
-                      activityName: widget.activity.name,
-                      onComplete: (completedCount) {
-                        widget.onCountChanged(completedCount);
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  );
-                } else {
-                  print('No video found for activity: ${widget.activity.id}');
-                }
-              },
-              child: Container(
+              const SizedBox(height: 2),
+              Container(
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
@@ -101,43 +104,43 @@ class _ActivityTileState extends State<ActivityTile> {
                       )
                     : null,
               ),
-            ),
-            if (_isHovered) ...[
-              const SizedBox(height: 4),
-              Text(
-                widget.activity.name,
-                style: const TextStyle(fontSize: 10),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove, size: 32),
-                  onPressed: widget.activity.count > 0
-                      ? () => widget.onCountChanged(widget.activity.count - 1)
-                      : null,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 24,
-                    minHeight: 24,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add, size: 32),
-                  onPressed: () =>
-                      widget.onCountChanged(widget.activity.count + 1),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 24,
-                    minHeight: 24,
-                  ),
+              if (_isHovered) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.activity.name,
+                  style: const TextStyle(fontSize: 10),
+                  textAlign: TextAlign.center,
                 ),
               ],
-            ),
-          ],
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove, size: 32),
+                    onPressed: widget.activity.count > 0
+                        ? () => widget.onCountChanged(widget.activity.count - 1)
+                        : null,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add, size: 32),
+                    onPressed: () =>
+                        widget.onCountChanged(widget.activity.count + 1),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -19,6 +19,20 @@ class ActivityGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sort activities to show sequences first, then regular activities
+    final sortedActivities = List<Activity>.from(activities)
+      ..sort((a, b) {
+        // Sequences come first
+        final aIsSequence = a.id.startsWith('seq_');
+        final bIsSequence = b.id.startsWith('seq_');
+
+        if (aIsSequence && !bIsSequence) return -1;
+        if (!aIsSequence && bIsSequence) return 1;
+
+        // If both are same type, maintain original order
+        return activities.indexOf(a).compareTo(activities.indexOf(b));
+      });
+
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -27,12 +41,14 @@ class ActivityGrid extends StatelessWidget {
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: activities.length,
+      itemCount: sortedActivities.length,
       itemBuilder: (context, index) {
-        final activity = activities[index];
+        final activity = sortedActivities[index];
         if (activity.id.startsWith('seq_')) {
           return SequenceTile(
             sequence: activity,
+            firstActivityIcon: activity.icon,
+            firstActivityThumbnail: activity.thumbnailPath,
             onPlay: () => onPlaySequence(activity),
             onDelete: () => onDeleteSequence(activity),
           );
