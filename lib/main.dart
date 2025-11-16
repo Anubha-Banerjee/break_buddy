@@ -606,8 +606,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             _secondsRemaining = _selectedInterval;
-            _totalWorkingTime =
-                0; // Reset total working time when taking a proper break
+            // Don't reset total working time here - it should accumulate across activities
           });
         }
 
