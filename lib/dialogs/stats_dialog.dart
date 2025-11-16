@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/activity.dart';
 import '../models/activity_video.dart';
 import 'dart:math' as math;
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ActivityStats {
   final Activity activity;
@@ -42,6 +45,158 @@ class StatsDialog extends StatelessWidget {
     }
   }
 
+  void _shareStats(BuildContext context) {
+    // Build the share text with all stats - comprehensive format
+    StringBuffer shareText = StringBuffer();
+    shareText.write('Break Buddy - My Workout Stats\n');
+    shareText.write('=' * 50);
+    shareText.write('\n\n');
+
+    // Breaks taken
+    shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
+
+    // Activities completed with full details
+    if (activityStats.isNotEmpty) {
+      shareText.write('ACTIVITIES COMPLETED:\n');
+      shareText.write('-' * 50);
+      shareText.write('\n\n');
+      for (var stat in activityStats) {
+        shareText.write('Activity: ${stat.activity.name}\n');
+        shareText.write('Repetitions: ${stat.count} times\n');
+        shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
+      }
+      shareText.write('=' * 50);
+      shareText.write('\n\n');
+    } else {
+      shareText.write('No activities completed.\n\n');
+    }
+
+    // Total times
+    shareText.write('SESSION SUMMARY:\n');
+    shareText.write('-' * 50);
+    shareText.write('\n');
+    shareText
+        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
+    shareText
+        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
+    shareText.write('=' * 50);
+    shareText.write('\nShared from Break Buddy App');
+
+    final finalText = shareText.toString();
+    print('Sharing stats:\n$finalText');
+
+    // Share with the text
+    Share.share(
+      finalText,
+      subject: 'My Break Buddy Workout Stats',
+    );
+  }
+
+  void _copyStatsToClipboard(BuildContext context) {
+    // Build the share text with all stats - comprehensive format
+    StringBuffer shareText = StringBuffer();
+    shareText.write('Break Buddy - My Workout Stats\n');
+    shareText.write('=' * 50);
+    shareText.write('\n\n');
+
+    // Breaks taken
+    shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
+
+    // Activities completed with full details
+    if (activityStats.isNotEmpty) {
+      shareText.write('ACTIVITIES COMPLETED:\n');
+      shareText.write('-' * 50);
+      shareText.write('\n\n');
+      for (var stat in activityStats) {
+        shareText.write('Activity: ${stat.activity.name}\n');
+        shareText.write('Repetitions: ${stat.count} times\n');
+        shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
+      }
+      shareText.write('=' * 50);
+      shareText.write('\n\n');
+    } else {
+      shareText.write('No activities completed.\n\n');
+    }
+
+    // Total times
+    shareText.write('SESSION SUMMARY:\n');
+    shareText.write('-' * 50);
+    shareText.write('\n');
+    shareText
+        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
+    shareText
+        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
+    shareText.write('=' * 50);
+    shareText.write('\nShared from Break Buddy App');
+
+    final finalText = shareText.toString();
+
+    // Copy to clipboard
+    Clipboard.setData(ClipboardData(text: finalText)).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stats copied to clipboard!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    });
+  }
+
+  void _openGmail(BuildContext context) {
+    // Build the share text with all stats
+    StringBuffer shareText = StringBuffer();
+    shareText.write('Break Buddy - My Workout Stats\n');
+    shareText.write('=' * 50);
+    shareText.write('\n\n');
+
+    // Breaks taken
+    shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
+
+    // Activities completed with full details
+    if (activityStats.isNotEmpty) {
+      shareText.write('ACTIVITIES COMPLETED:\n');
+      shareText.write('-' * 50);
+      shareText.write('\n\n');
+      for (var stat in activityStats) {
+        shareText.write('Activity: ${stat.activity.name}\n');
+        shareText.write('Repetitions: ${stat.count} times\n');
+        shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
+      }
+      shareText.write('=' * 50);
+      shareText.write('\n\n');
+    } else {
+      shareText.write('No activities completed.\n\n');
+    }
+
+    // Total times
+    shareText.write('SESSION SUMMARY:\n');
+    shareText.write('-' * 50);
+    shareText.write('\n');
+    shareText
+        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
+    shareText
+        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
+    shareText.write('=' * 50);
+    shareText.write('\nShared from Break Buddy App');
+
+    final finalText = shareText.toString();
+    final body = Uri.encodeComponent(finalText);
+    final subject = Uri.encodeComponent('My Break Buddy Workout Stats');
+
+    // Create Gmail URL - try multiple approaches
+    final gmailUrl =
+        'https://mail.google.com/mail/?view=cm&fs=1&su=$subject&body=$body';
+    final mailtoUrl = 'mailto:?subject=$subject&body=$body';
+
+    // Try to open Gmail web first, then fallback to mailto
+    launchUrl(Uri.parse(gmailUrl), mode: LaunchMode.externalApplication)
+        .catchError((_) {
+      // Fallback to mailto if Gmail web doesn't work
+      return launchUrl(Uri.parse(mailtoUrl));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -65,9 +220,58 @@ class StatsDialog extends StatelessWidget {
                     color: Colors.blue,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
+                Row(
+                  children: [
+                    PopupMenuButton(
+                      icon: const Icon(Icons.share, color: Colors.blue),
+                      onSelected: (value) {
+                        if (value == 'share') {
+                          _shareStats(context);
+                        } else if (value == 'copy') {
+                          _copyStatsToClipboard(context);
+                        } else if (value == 'gmail') {
+                          _openGmail(context);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        const PopupMenuItem(
+                          value: 'share',
+                          child: Row(
+                            children: [
+                              Icon(Icons.share, size: 20),
+                              SizedBox(width: 10),
+                              Text('Share Stats'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'copy',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy, size: 20),
+                              SizedBox(width: 10),
+                              Text('Copy to Clipboard'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'gmail',
+                          child: Row(
+                            children: [
+                              Icon(Icons.mail, size: 20),
+                              SizedBox(width: 10),
+                              Text('Open Gmail'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      tooltip: 'Share Options',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
               ],
             ),
