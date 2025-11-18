@@ -468,7 +468,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedInterval = 1800; // Default interval in seconds
   bool _isTimerActive = false;
   bool _isReminderShowing = false;
-  int _totalWorkingTime = 0; // Track total working time including snoozes
+  int _totalWorkingTime = 0; // Track working time since last break (resets on completion)
+  int _sessionWorkingTime = 0; // Track cumulative working time for the entire session (for stats)
   int _breaksTaken = 0;
   List<ActivityStats> _activityStats = [];
   int _totalActivityTime = 0;
@@ -525,6 +526,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _activityStats = [];
       _totalActivityTime = 0;
       _totalWorkingTime = 0;
+      _sessionWorkingTime = 0; // Also reset cumulative session time
     });
   }
 
@@ -544,8 +546,9 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
-          // Increment total working time while timer is running
+          // Increment both working time counters
           _totalWorkingTime++;
+          _sessionWorkingTime++;
         } else {
           _showExerciseReminder();
           _secondsRemaining = _selectedInterval; // Reset to selected interval
@@ -615,34 +618,38 @@ class _HomeScreenState extends State<HomeScreen> {
           totalWorkingTime: _totalWorkingTime,
           onDismiss: (completedActivities) {
             handleDismiss(completedActivities);
+            // Reset working time display for next cycle when break is completed
+            setState(() {
+              _totalWorkingTime = 0;
+            });
           },
           sequenceService: _sequenceService,
           onSnooze1: () {
             handleDismiss([]);
             setState(() {
               _secondsRemaining = 60;
-              // Don't reset total working time for snooze
+              // Don't reset _totalWorkingTime for snooze - it continues counting
             });
           },
           onSnooze5: () {
             handleDismiss([]);
             setState(() {
               _secondsRemaining = 300;
-              // Don't reset total working time for snooze
+              // Don't reset _totalWorkingTime for snooze - it continues counting
             });
           },
           onSnooze10: () {
             handleDismiss([]);
             setState(() {
               _secondsRemaining = 600;
-              // Don't reset total working time for snooze
+              // Don't reset _totalWorkingTime for snooze - it continues counting
             });
           },
           onSnooze15: () {
             handleDismiss([]);
             setState(() {
               _secondsRemaining = 900;
-              // Don't reset total working time for snooze
+              // Don't reset _totalWorkingTime for snooze - it continues counting
             });
           },
         );
@@ -735,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> {
     print('\n[DEBUG] Showing Stats Dialog:');
     print('Breaks taken: $_breaksTaken');
     print('Total activity time: ${_totalActivityTime}s');
-    print('Total working time: ${_totalWorkingTime}s');
+    print('Session working time: ${_sessionWorkingTime}s');
     print('Activity stats:');
     if (_activityStats.isEmpty) {
       print('No activities recorded');
@@ -752,7 +759,7 @@ class _HomeScreenState extends State<HomeScreen> {
         breaksTaken: _breaksTaken,
         activityStats: _activityStats,
         totalActivityTime: _totalActivityTime,
-        totalWorkingTime: _totalWorkingTime,
+        totalWorkingTime: _sessionWorkingTime, // Use session time for stats
       ),
     );
   }
