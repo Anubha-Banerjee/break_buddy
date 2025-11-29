@@ -468,8 +468,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedInterval = 1800; // Default interval in seconds
   bool _isTimerActive = false;
   bool _isReminderShowing = false;
-  int _totalWorkingTime = 0; // Track working time since last break (resets on completion)
-  int _sessionWorkingTime = 0; // Track cumulative working time for the entire session (for stats)
+  int _totalWorkingTime =
+      0; // Track working time since last break (resets on completion)
+  int _sessionWorkingTime =
+      0; // Track cumulative working time for the entire session (for stats)
   int _breaksTaken = 0;
   List<ActivityStats> _activityStats = [];
   int _totalActivityTime = 0;
