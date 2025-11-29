@@ -55,6 +55,14 @@ class StatsDialog extends StatelessWidget {
     // Breaks taken
     shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
 
+    // Total times
+    shareText.write('-' * 50);
+    shareText.write('\n');
+    shareText
+        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
+    shareText
+        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
+
     // Activities completed with full details
     if (activityStats.isNotEmpty) {
       shareText.write('ACTIVITIES COMPLETED:\n');
@@ -71,15 +79,6 @@ class StatsDialog extends StatelessWidget {
       shareText.write('No activities completed.\n\n');
     }
 
-    // Total times
-    shareText.write('SESSION SUMMARY:\n');
-    shareText.write('-' * 50);
-    shareText.write('\n');
-    shareText
-        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
-    shareText
-        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
-    shareText.write('=' * 50);
     shareText.write('\nShared from Break Buddy App');
 
     final finalText = shareText.toString();
@@ -102,6 +101,14 @@ class StatsDialog extends StatelessWidget {
     // Breaks taken
     shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
 
+    // Total times
+    shareText.write('-' * 50);
+    shareText.write('\n');
+    shareText
+        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
+    shareText
+        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
+
     // Activities completed with full details
     if (activityStats.isNotEmpty) {
       shareText.write('ACTIVITIES COMPLETED:\n');
@@ -118,15 +125,6 @@ class StatsDialog extends StatelessWidget {
       shareText.write('No activities completed.\n\n');
     }
 
-    // Total times
-    shareText.write('SESSION SUMMARY:\n');
-    shareText.write('-' * 50);
-    shareText.write('\n');
-    shareText
-        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
-    shareText
-        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
-    shareText.write('=' * 50);
     shareText.write('\nShared from Break Buddy App');
 
     final finalText = shareText.toString();
@@ -153,6 +151,14 @@ class StatsDialog extends StatelessWidget {
     // Breaks taken
     shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
 
+    // Total times
+    shareText.write('-' * 50);
+    shareText.write('\n');
+    shareText
+        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
+    shareText
+        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
+
     // Activities completed with full details
     if (activityStats.isNotEmpty) {
       shareText.write('ACTIVITIES COMPLETED:\n');
@@ -169,15 +175,6 @@ class StatsDialog extends StatelessWidget {
       shareText.write('No activities completed.\n\n');
     }
 
-    // Total times
-    shareText.write('SESSION SUMMARY:\n');
-    shareText.write('-' * 50);
-    shareText.write('\n');
-    shareText
-        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
-    shareText
-        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
-    shareText.write('=' * 50);
     shareText.write('\nShared from Break Buddy App');
 
     final finalText = shareText.toString();
