@@ -6,11 +6,16 @@ import '../widgets/video_player_dialog.dart';
 class ActivityTile extends StatefulWidget {
   final Activity activity;
   final Function(int) onCountChanged;
+  final Function(int)? onVideoComplete; // New callback for video completion
+  final Function(int count, int timeSpentSeconds)?
+      onTimeTracked; // Track time spent
 
   const ActivityTile({
     super.key,
     required this.activity,
     required this.onCountChanged,
+    this.onVideoComplete,
+    this.onTimeTracked,
   });
 
   @override
@@ -53,10 +58,17 @@ class _ActivityTileState extends State<ActivityTile> {
                   durationInSeconds: video.duration,
                   repeatCount: widget.activity.count,
                   activityName: widget.activity.name,
+                  onTimeTracked: widget.onTimeTracked,
                   onComplete: (completedCount) {
-                    // Ensure count never goes below 0
-                    final validCount = completedCount < 0 ? 0 : completedCount;
-                    widget.onCountChanged(validCount);
+                    // Use the video complete callback if provided, otherwise fall back to count change
+                    if (widget.onVideoComplete != null) {
+                      widget.onVideoComplete!(completedCount);
+                    } else {
+                      // For backward compatibility, pass absolute value to count change
+                      final validCount =
+                          completedCount < 0 ? 0 : completedCount;
+                      widget.onCountChanged(validCount);
+                    }
                     Navigator.of(context).pop();
                   },
                 ),

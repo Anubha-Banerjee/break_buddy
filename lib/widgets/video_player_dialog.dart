@@ -13,6 +13,7 @@ class VideoPlayerDialog extends StatefulWidget {
   final int repeatCount;
   final bool isLastActivity;
   final String? nextActivityName;
+  final Function(int count, int timeSpentSeconds)? onTimeTracked;
 
   const VideoPlayerDialog({
     Key? key,
@@ -23,6 +24,7 @@ class VideoPlayerDialog extends StatefulWidget {
     this.repeatCount = 0,
     this.isLastActivity = false,
     this.nextActivityName,
+    this.onTimeTracked,
   }) : super(key: key);
 
   @override
@@ -42,6 +44,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   bool _videoCompleted = false;
   StreamSubscription<bool>? _playbackSubscription;
   Duration? _lastPosition;
+  late DateTime _startTime;
 
   @override
   void initState() {
@@ -51,6 +54,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     _playCount = 1;
     _lastPosition = null;
     _showingNextActivityPopup = false;
+    _startTime = DateTime.now();
     print(
         'Initializing video player for ${widget.activityName} with ${widget.repeatCount} repeats');
     _initializePlayer();
@@ -79,89 +83,97 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       _videoCompleted = false;
       _lastPosition = null;
 
-      if (widget.repeatCount > 0) {
+      // Always set up playback monitoring for manual looping via Next/Quit buttons
+      print('Setting up playback monitoring for manual looping');
+
+      bool hasReachedEnd = false;
+      _player.stream.position.listen((position) async {
+        final currentPositionMs = position.inMilliseconds;
+        final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
+        final durationMs = widget.durationInSeconds * 1000;
+
         print(
-            'Setting up playback monitoring for ${widget.repeatCount} repeats');
+            'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms');
 
-        bool hasReachedEnd = false;
-        _player.stream.position.listen((position) async {
-          final currentPositionMs = position.inMilliseconds;
-          final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
-          final durationMs = widget.durationInSeconds * 1000;
+        if (!hasReachedEnd && currentPositionMs >= (durationMs - 200)) {
+          print('Reached end of video');
+          hasReachedEnd = true;
+        }
 
-          print(
-              'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms');
+        if (hasReachedEnd && currentPositionMs < 200 && !_videoCompleted) {
+          print('Loop detected: Video restarted from beginning');
+          hasReachedEnd = false;
 
-          if (!hasReachedEnd && currentPositionMs >= (durationMs - 200)) {
-            print('Reached end of video');
-            hasReachedEnd = true;
-          }
-
-          if (hasReachedEnd && currentPositionMs < 200 && !_videoCompleted) {
-            print('Loop detected: Video restarted from beginning');
-            hasReachedEnd = false;
-
-            if (mounted) {
-              _videoCompleted = true;
-              int unboundedPlayCount = 0;
-              setState(() {
-                unboundedPlayCount = _playCount + 1;
+          if (mounted) {
+            _videoCompleted = true;
+            int unboundedPlayCount = 0;
+            setState(() {
+              unboundedPlayCount = _playCount + 1;
+              // If repeatCount is set, respect it. Otherwise allow unlimited looping
+              if (widget.repeatCount > 0) {
                 _playCount = min(_playCount + 1, widget.repeatCount);
-              });
-              print(
-                  'Incremented play count to $_playCount/${widget.repeatCount}');
-
-              if (unboundedPlayCount > widget.repeatCount) {
-                print(
-                    'Target count reached ($_playCount/${widget.repeatCount}), preparing to end');
-                await _player.pause();
-
-                if (mounted) {
-                  setState(() {
-                    _showingNextActivityPopup = !widget.isLastActivity;
-                  });
-
-                  if (_showingNextActivityPopup) {
-                    await Future.delayed(const Duration(seconds: 4));
-                  }
-
-                  if (mounted) {
-                    widget.onComplete(_playCount);
-                  }
-                }
               } else {
-                _videoCompleted = false;
+                _playCount = unboundedPlayCount;
+              }
+            });
+            print(
+                'Incremented play count to $_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+
+            // Only auto-complete if we have a repeatCount target and reached it
+            if (widget.repeatCount > 0 &&
+                unboundedPlayCount > widget.repeatCount) {
+              print(
+                  'Target count reached ($_playCount/${widget.repeatCount}), preparing to end');
+              await _player.pause();
+
+              if (mounted) {
+                setState(() {
+                  _showingNextActivityPopup = !widget.isLastActivity;
+                });
+
+                if (_showingNextActivityPopup) {
+                  await Future.delayed(const Duration(seconds: 4));
+                }
+
                 if (mounted) {
-                  await _player.play();
+                  _completeWithTime(_playCount);
                 }
               }
-            }
-          } else if (currentPositionMs > 200 &&
-              currentPositionMs < (durationMs - 200)) {
-            _videoCompleted = false;
-            hasReachedEnd = false;
-          }
-
-          _lastPosition = position;
-        });
-
-        _playbackSubscription =
-            _player.stream.completed.listen((completed) async {
-          print(
-              'Completed event received: completed=$completed, playCount=$_playCount/${widget.repeatCount}');
-          if (completed && mounted && _playCount < widget.repeatCount) {
-            await _player.seek(Duration.zero);
-            if (mounted) {
-              await _player.play();
+            } else {
+              _videoCompleted = false;
+              if (mounted) {
+                await _player.play();
+              }
             }
           }
-        });
+        } else if (currentPositionMs > 200 &&
+            currentPositionMs < (durationMs - 200)) {
+          _videoCompleted = false;
+          hasReachedEnd = false;
+        }
 
-        _player.stream.playing.listen((playing) {
-          print(
-              'Playback state changed: playing=$playing, count=$_playCount/${widget.repeatCount}');
-        });
-      }
+        _lastPosition = position;
+      });
+
+      _playbackSubscription =
+          _player.stream.completed.listen((completed) async {
+        print(
+            'Completed event received: completed=$completed, playCount=$_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+        if (completed &&
+            mounted &&
+            widget.repeatCount > 0 &&
+            _playCount < widget.repeatCount) {
+          await _player.seek(Duration.zero);
+          if (mounted) {
+            await _player.play();
+          }
+        }
+      });
+
+      _player.stream.playing.listen((playing) {
+        print(
+            'Playback state changed: playing=$playing, count=$_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+      });
 
       await _player.play();
       await Future.delayed(const Duration(milliseconds: 100));
@@ -206,6 +218,18 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     super.dispose();
   }
 
+  void _completeWithTime(int count) {
+    final timeSpent = DateTime.now().difference(_startTime).inSeconds;
+    final actualCount =
+        count.abs(); // Get absolute value (handles negative quit signal)
+    print(
+        '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s');
+    if (widget.onTimeTracked != null && actualCount > 0) {
+      widget.onTimeTracked!(actualCount, timeSpent);
+    }
+    widget.onComplete(count);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error) {
@@ -220,7 +244,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               TextButton(
                 onPressed: () {
                   if (_playCount > 0) {
-                    widget.onComplete(_playCount);
+                    _completeWithTime(_playCount);
                   } else {
                     Navigator.of(context).pop();
                   }
@@ -318,7 +342,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => widget.onComplete(_playCount),
+                          onPressed: () => _completeWithTime(_playCount),
                           icon: const Icon(Icons.skip_next),
                           label: const Text('Next'),
                           style: ElevatedButton.styleFrom(
@@ -328,8 +352,9 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // When quitting, pass -1 to signal sequence termination
-                            widget.onComplete(-1);
+                            // When quitting, pass negative play count to signal quit
+                            // negative = quit, positive = normal completion
+                            _completeWithTime(-_playCount);
                           },
                           icon: const Icon(Icons.close),
                           label: const Text('Quit'),

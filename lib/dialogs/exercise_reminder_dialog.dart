@@ -40,6 +40,8 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   late List<Activity> activities;
   late Map<String, int>
       completedActivityCounts; // Track activity ID -> completion count
+  late Map<String, int>
+      activityTimeSpent; // Track activity ID -> time spent in seconds
   int _currentActivityIndex = -1;
   bool _isPlayingSequence = false;
   final TextEditingController _sequenceNameController = TextEditingController();
@@ -156,6 +158,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
   void initState() {
     super.initState();
     completedActivityCounts = {};
+    activityTimeSpent = {};
     _initializeActivities();
   }
 
@@ -239,6 +242,61 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
         }
       }
     });
+  }
+
+  // Handle video completion from direct tile clicks (not from "Start Activities" flow)
+  void _onActivityVideoComplete(String activityId, int completedCount) {
+    print(
+        '[DEBUG] Direct tile video complete: $activityId, completedCount=$completedCount');
+
+    bool userQuit = false;
+    int actualCount = completedCount;
+
+    // Check if quit signal was sent (negative value)
+    if (completedCount < 0) {
+      userQuit = true;
+      actualCount = -completedCount;
+    }
+
+    print('[DEBUG] User quit: $userQuit, actual count: $actualCount');
+
+    if (actualCount > 0) {
+      // Find the activity and record it to stats
+      final activityIndex = activities.indexWhere((a) => a.id == activityId);
+      if (activityIndex != -1) {
+        final activity = activities[activityIndex];
+        print(
+            '[DEBUG] Recording direct activity: ${activity.name}, count=$actualCount');
+
+        // Record the activity in completedActivityCounts
+        completedActivityCounts[activity.id] = actualCount;
+
+        // Update the activity count in the list
+        setState(() {
+          activities[activityIndex] = activity.copyWith(count: 0);
+        });
+      }
+    }
+  }
+
+  void _onActivityTimeTracked(
+      String activityId, int count, int timeSpentSeconds) {
+    print(
+        '[DEBUG] Activity time tracked: $activityId, count=$count, time=${timeSpentSeconds}s');
+
+    // Find the activity
+    final activityIndex = activities.indexWhere((a) => a.id == activityId);
+    if (activityIndex != -1) {
+      final activity = activities[activityIndex];
+      print('[DEBUG] Recording time for activity: ${activity.name}');
+
+      // Store the time spent for this activity
+      // If tracking multiple reps, store the total time
+      activityTimeSpent[activity.id] =
+          (activityTimeSpent[activity.id] ?? 0) + timeSpentSeconds;
+      print(
+          '[DEBUG] Total time for ${activity.name}: ${activityTimeSpent[activity.id]}s');
+    }
   }
 
   Future<void> _playNextVideo() async {
@@ -377,30 +435,39 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 activityName: activity.name,
                 isLastActivity: isLastActivity,
                 nextActivityName: nextActivityName,
+                onTimeTracked: (count, timeSpent) {
+                  print(
+                      '[DEBUG] Sequence video time tracked: ${activity.name}, count=$count, time=${timeSpent}s');
+                  activityTimeSpent[activity.id] =
+                      (activityTimeSpent[activity.id] ?? 0) + timeSpent;
+                  print(
+                      '[DEBUG] Total time for ${activity.name}: ${activityTimeSpent[activity.id]}s');
+                },
                 onComplete: (int completedCount) async {
                   if (mounted) {
                     Navigator.of(context).pop();
 
-                    // Check if user clicked quit (-1 signal)
-                    if (completedCount == -1) {
-                      print('User quit the sequence');
-                      // Stop the entire sequence
-                      setState(() {
-                        _isPlayingSequence = false;
-                        _currentActivityIndex = -1;
-                      });
-                      return;
-                    }
+                    // Check if user clicked quit (negative value signals quit)
+                    bool userQuit = completedCount < 0;
+                    int actualCount =
+                        userQuit ? -completedCount : completedCount;
 
                     // Use the actual completed count from the video player
                     // This handles cases where user quits before completing all reps
                     final actualCompletedCount =
-                        completedCount > 0 ? completedCount : 0;
+                        actualCount > 0 ? actualCount : 0;
+
+                    print(
+                        '[DEBUG] onComplete called: completedCount=$completedCount, userQuit=$userQuit, actualCount=$actualCount, actualCompletedCount=$actualCompletedCount');
+                    print(
+                        '[DEBUG] Activity: ${activity.name} (${activity.id})');
 
                     // Mark this activity as completed in our tracking map
                     setState(() {
                       completedActivityCounts[activity.id] =
                           actualCompletedCount;
+                      print(
+                          '[DEBUG] Stored in completedActivityCounts: ${activity.id} => $actualCompletedCount');
                       final index =
                           activities.indexWhere((a) => a.id == activity.id);
                       if (index != -1) {
@@ -408,6 +475,16 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                             activities[index].copyWith(count: 0);
                       }
                     });
+
+                    // If user quit, stop the sequence after recording this activity
+                    if (userQuit) {
+                      print('User quit the sequence');
+                      setState(() {
+                        _isPlayingSequence = false;
+                        _currentActivityIndex = -1;
+                      });
+                      return;
+                    }
 
                     // Check if there are any remaining activities with count > 0
                     final hasRemainingActivities = activities.any((a) {
@@ -638,6 +715,8 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
               child: ActivityGrid(
                 activities: activities,
                 onActivityCountChanged: _onActivityCountChanged,
+                onActivityVideoComplete: _onActivityVideoComplete,
+                onTimeTracked: _onActivityTimeTracked,
                 onDeleteSequence: (sequence) async {
                   if (widget.sequenceService != null) {
                     final sequenceId =
@@ -864,19 +943,31 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
+                            print('\n[DEBUG] Done button clicked');
+                            print(
+                                '[DEBUG] completedActivityCounts: $completedActivityCounts');
+                            print(
+                                '[DEBUG] activityTimeSpent: $activityTimeSpent');
+                            print('[DEBUG] activities in dialog:');
+                            for (var a in activities) {
+                              print(
+                                  '  - ${a.name} (${a.id}): count=${a.count}');
+                            }
+
                             // Get completed activities and restore their counts from our tracking map
                             final completedActivities = activities
                                 .where((a) =>
                                     completedActivityCounts.containsKey(a.id))
                                 .map((a) => a.copyWith(
                                       count: completedActivityCounts[a.id] ?? 0,
+                                      timeSpent: activityTimeSpent[a.id] ?? 0,
                                     ))
                                 .toList();
 
                             print('\nCompleted activities for stats:');
                             for (var activity in completedActivities) {
                               print(
-                                  '- ${activity.name} (${activity.id}): count=${activity.count}');
+                                  '- ${activity.name} (${activity.id}): count=${activity.count}, time=${activity.timeSpent}s');
                             }
 
                             widget.onDismiss(completedActivities);

@@ -8,6 +8,7 @@ class Activity {
   final String? thumbnailPath;
   int count;
   DateTime? selectionTime; // Track when the activity was first selected
+  int? timeSpent; // Track actual time spent (in seconds) for direct video plays
 
   Activity({
     required this.id,
@@ -17,6 +18,7 @@ class Activity {
     this.thumbnailPath,
     this.count = 0,
     this.selectionTime,
+    this.timeSpent,
   });
 
   Activity copyWith({
@@ -25,6 +27,7 @@ class Activity {
     IconData? icon,
     int? count,
     DateTime? selectionTime,
+    int? timeSpent,
   }) {
     return Activity(
       id: id ?? this.id,
@@ -34,6 +37,7 @@ class Activity {
       thumbnailPath: thumbnailPath,
       count: count ?? this.count,
       selectionTime: selectionTime ?? this.selectionTime,
+      timeSpent: timeSpent ?? this.timeSpent,
     );
   }
 }

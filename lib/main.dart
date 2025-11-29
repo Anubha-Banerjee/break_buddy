@@ -84,8 +84,10 @@ Future<void> main() async {
   // Initialize window manager only on desktop platforms
   if (!Platform.isAndroid && !Platform.isIOS) {
     await windowManager.ensureInitialized();
+
+    // Set window to use larger default size for better visibility
     WindowOptions windowOptions = WindowOptions(
-      size: Size(800, 950), // Increased height from 700 to 850
+      size: Size(900, 1100),
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
@@ -692,15 +694,17 @@ class _HomeScreenState extends State<HomeScreen> {
         // Update existing stats
         int oldCount = _activityStats[index].count;
         int newCount = oldCount + activity.count;
-        int timeSpent =
-            (VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
-                activity.count;
+        // Use tracked time if available, otherwise calculate from video duration
+        int timeSpent = activity.timeSpent ??
+            ((VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
+                activity.count);
 
         print('Updating existing stats:');
         print('- Old count: $oldCount');
         print('- Adding count: ${activity.count}');
         print('- New count: $newCount');
-        print('- Adding time: ${timeSpent}s');
+        print(
+            '- Adding time: ${timeSpent}s (tracked: ${activity.timeSpent}, from config: ${(VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) * activity.count})');
 
         _activityStats[index] = ActivityStats(
           activity: activity,
@@ -709,12 +713,14 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       } else {
         // Add new stats
-        int timeSpent =
-            (VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
-                activity.count;
+        // Use tracked time if available, otherwise calculate from video duration
+        int timeSpent = activity.timeSpent ??
+            ((VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
+                activity.count);
         print('Adding new activity stats:');
         print('- Initial count: ${activity.count}');
-        print('- Initial time: ${timeSpent}s');
+        print(
+            '- Initial time: ${timeSpent}s (tracked: ${activity.timeSpent}, from config: ${(VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) * activity.count})');
 
         _activityStats.add(ActivityStats(
           activity: activity,
@@ -766,327 +772,378 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<bool?> _showQuitConfirmation(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Quit Break Buddy?'),
+        content: const Text('Are you sure you want to quit the application?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(false);
+              _showStats();
+            },
+            child: const Text('Show Stats'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Break Buddy - Break Reminder'),
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.blue[50]!, Colors.white],
-          ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Show quit confirmation dialog
+        return await _showQuitConfirmation(context) ?? false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Break Buddy - Break Reminder'),
+          backgroundColor: Colors.blue[600],
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: 'Quit',
+              onPressed: () async {
+                final shouldQuit = await _showQuitConfirmation(context);
+                if (shouldQuit == true) {
+                  exit(0);
+                }
+              },
+            ),
+          ],
         ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[600],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.desktop_windows,
-                    size: 60,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 30),
-                Text(
-                  'Break Buddy',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Stay healthy with regular breaks!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 30),
-                Container(
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Timer Interval:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: _timerOptions.entries.map((entry) {
-                              bool isSelected =
-                                  _selectedInterval == entry.value;
-                              return Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 4),
-                                  child: ElevatedButton(
-                                    onPressed: _isTimerActive
-                                        ? null
-                                        : () {
-                                            setState(() {
-                                              _selectedInterval = entry.value;
-                                              _secondsRemaining = entry.value;
-                                            });
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isSelected
-                                          ? Colors.blue[600]
-                                          : Colors.grey[300],
-                                      foregroundColor: isSelected
-                                          ? Colors.white
-                                          : Colors.grey[700],
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        entry.key,
-                                        style: TextStyle(fontSize: 12),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 40),
-                Container(
-                  padding: EdgeInsets.all(30),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 3,
-                        blurRadius: 7,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        _isTimerActive
-                            ? 'Next reminder in:'
-                            : 'Timer not active',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Animated Hourglass
-                                SizedBox(
-                                  width: 100,
-                                  height: 120,
-                                  child: CustomPaint(
-                                    painter: RealisticHourglassPainter(
-                                      progress: _isTimerActive
-                                          ? 1 -
-                                              (_secondsRemaining /
-                                                  _selectedInterval)
-                                          : 0,
-                                      isActive: _isTimerActive,
-                                      animationTime: _isTimerActive
-                                          ? DateTime.now()
-                                                  .millisecondsSinceEpoch /
-                                              1000
-                                          : 0,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 30),
-                                // Timer Display
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _isTimerActive
-                                          ? _formatTime(_secondsRemaining)
-                                          : '--:--',
-                                      style: TextStyle(
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue[600],
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      _isTimerActive
-                                          ? '${((1 - (_secondsRemaining / _selectedInterval)) * 100).toInt()}% complete'
-                                          : 'Ready to start',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      SizedBox(height: 20),
-                      if (_isTimerActive)
-                        LinearProgressIndicator(
-                          value: 1 - (_secondsRemaining / _selectedInterval),
-                          backgroundColor: Colors.grey[300],
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 40),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _isTimerActive ? null : startTimer,
-                      icon: Icon(Icons.play_arrow),
-                      label: Text('Start Timer'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                        textStyle: TextStyle(fontSize: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.blue[50]!, Colors.white],
+            ),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[600],
+                      shape: BoxShape.circle,
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _isTimerActive ? stopTimer : null,
-                      icon: Icon(Icons.stop),
-                      label: Text('Stop Timer'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                        textStyle: TextStyle(fontSize: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                    child: Icon(
+                      Icons.desktop_windows,
+                      size: 50,
+                      color: Colors.white,
                     ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: ElevatedButton.icon(
-                        onPressed:
-                            _isTimerActive ? _showExerciseReminder : null,
-                        icon: Icon(Icons.preview),
-                        label: Text('Take a break now!'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              _isTimerActive ? Colors.orange : Colors.grey,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 15),
-                          textStyle: TextStyle(fontSize: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Flexible(
-                      child: ElevatedButton.icon(
-                        onPressed: _isTimerActive ? _showStats : null,
-                        icon: Icon(Icons.bar_chart),
-                        label: Text('Show Stats'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              _isTimerActive ? Colors.purple : Colors.grey,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 15),
-                          textStyle: TextStyle(fontSize: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 30),
-                Container(
-                  padding: EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
-                    'Keep this app running in the background.\nEvery ${(_selectedInterval / 60).toInt()} minutes, you\'ll get a reminder to take an exercise break!',
+                  SizedBox(height: 15),
+                  Text(
+                    'Break Buddy',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
                     ),
                     textAlign: TextAlign.center,
                   ),
-                ),
-              ],
+                  SizedBox(height: 10),
+                  Text(
+                    'Stay healthy with regular breaks!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 30),
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Timer Interval:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        SizedBox(height: 15),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: _timerOptions.entries.map((entry) {
+                                bool isSelected =
+                                    _selectedInterval == entry.value;
+                                return Expanded(
+                                  child: Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 4),
+                                    child: ElevatedButton(
+                                      onPressed: _isTimerActive
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _selectedInterval = entry.value;
+                                                _secondsRemaining = entry.value;
+                                              });
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isSelected
+                                            ? Colors.blue[600]
+                                            : Colors.grey[300],
+                                        foregroundColor: isSelected
+                                            ? Colors.white
+                                            : Colors.grey[700],
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          entry.key,
+                                          style: TextStyle(fontSize: 12),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 40),
+                  Container(
+                    padding: EdgeInsets.all(30),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 3,
+                          blurRadius: 7,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          _isTimerActive
+                              ? 'Next reminder in:'
+                              : 'Timer not active',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Animated Hourglass
+                                  SizedBox(
+                                    width: 100,
+                                    height: 120,
+                                    child: CustomPaint(
+                                      painter: RealisticHourglassPainter(
+                                        progress: _isTimerActive
+                                            ? 1 -
+                                                (_secondsRemaining /
+                                                    _selectedInterval)
+                                            : 0,
+                                        isActive: _isTimerActive,
+                                        animationTime: _isTimerActive
+                                            ? DateTime.now()
+                                                    .millisecondsSinceEpoch /
+                                                1000
+                                            : 0,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 30),
+                                  // Timer Display
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isTimerActive
+                                            ? _formatTime(_secondsRemaining)
+                                            : '--:--',
+                                        style: TextStyle(
+                                          fontSize: 42,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue[600],
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                      SizedBox(height: 10),
+                                      Text(
+                                        _isTimerActive
+                                            ? '${((1 - (_secondsRemaining / _selectedInterval)) * 100).toInt()}% complete'
+                                            : 'Ready to start',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: 20),
+                        if (_isTimerActive)
+                          LinearProgressIndicator(
+                            value: 1 - (_secondsRemaining / _selectedInterval),
+                            backgroundColor: Colors.grey[300],
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.blue[600]!),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 40),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _isTimerActive ? null : startTimer,
+                        icon: Icon(Icons.play_arrow),
+                        label: Text('Start Timer'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 15),
+                          textStyle: TextStyle(fontSize: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _isTimerActive ? stopTimer : null,
+                        icon: Icon(Icons.stop),
+                        label: Text('Stop Timer'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 15),
+                          textStyle: TextStyle(fontSize: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              _isTimerActive ? _showExerciseReminder : null,
+                          icon: Icon(Icons.preview),
+                          label: Text('Take a break now!'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                _isTimerActive ? Colors.orange : Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 15),
+                            textStyle: TextStyle(fontSize: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Flexible(
+                        child: ElevatedButton.icon(
+                          onPressed: _isTimerActive ? _showStats : null,
+                          icon: Icon(Icons.bar_chart),
+                          label: Text('Show Stats'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                _isTimerActive ? Colors.purple : Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 15),
+                            textStyle: TextStyle(fontSize: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 30),
+                  Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Keep this app running in the background.\nEvery ${(_selectedInterval / 60).toInt()} minutes, you\'ll get a reminder to take an exercise break!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

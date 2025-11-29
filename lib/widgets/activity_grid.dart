@@ -8,6 +8,10 @@ class ActivityGrid extends StatelessWidget {
   final Function(String, int) onActivityCountChanged;
   final Function(Activity) onDeleteSequence;
   final Function(Activity) onPlaySequence;
+  final Function(String, int)?
+      onActivityVideoComplete; // New callback for video completion
+  final Function(String, int, int)?
+      onTimeTracked; // Track time: (activityId, count, timeSpent)
 
   const ActivityGrid({
     super.key,
@@ -15,6 +19,8 @@ class ActivityGrid extends StatelessWidget {
     required this.onActivityCountChanged,
     required this.onDeleteSequence,
     required this.onPlaySequence,
+    this.onActivityVideoComplete,
+    this.onTimeTracked,
   });
 
   @override
@@ -58,6 +64,14 @@ class ActivityGrid extends StatelessWidget {
             onCountChanged: (newCount) {
               onActivityCountChanged(activity.id, newCount);
             },
+            onVideoComplete: onActivityVideoComplete != null
+                ? (completedCount) =>
+                    onActivityVideoComplete!(activity.id, completedCount)
+                : null,
+            onTimeTracked: onTimeTracked != null
+                ? (count, timeSpent) =>
+                    onTimeTracked!(activity.id, count, timeSpent)
+                : null,
           );
         }
       },
