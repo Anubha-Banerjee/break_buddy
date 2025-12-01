@@ -1,5 +1,14 @@
-- show stats
 - template for adding new activities
-- preset activities - manually built - max 10
+-Mark the activities done once as green
+-suggest next activity
+-Random activity
 
-new activities : Woman Doing Bent Knee Hip Raise Exercise for abs
+
+- show stats-done
+- preset activities - manually built - max 10-done
+
+
+new activities : 
+Woman Doing Bent Knee Hip Raise Exercise for abs
+Dancing
+Hoolahooping
