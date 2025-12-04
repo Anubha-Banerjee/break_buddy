@@ -85,20 +85,44 @@ Future<void> main() async {
   if (!Platform.isAndroid && !Platform.isIOS) {
     await windowManager.ensureInitialized();
 
+    // Now get the actual screen size
+    final screenSize = await windowManager.getSize();
+
+    // Get screen information - this should give us the actual monitor dimensions
+    // We'll use a larger initial size first, then adjust
+    await windowManager.setSize(const Size(1920, 1080)); // Temporary large size
+    await Future.delayed(const Duration(milliseconds: 100)); // Give it time to resize
+
+    // Now get position to calculate actual screen bounds
+    // The screen size should now reflect actual monitor dimensions
+    final bounds = await windowManager.getBounds();
+
+    // Calculate window size as a percentage of screen size
+    // Use 45% of screen width and 70% of screen height
+    final windowWidth = bounds.width * 0.48;
+    final windowHeight = bounds.height * 0.92;
+
+    // Set minimum size (400x600 or 30% of screen, whichever is smaller)
+    double minWidth = math.min(400.0, bounds.width * 0.30);
+    double minHeight = math.min(600.0, bounds.height * 0.50);
+
     // Set window to use larger default size for better visibility
     WindowOptions windowOptions = WindowOptions(
-      size: Size(900, 1100),
+      size: Size(windowWidth, windowHeight),
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
+      windowButtonVisibility: false,
     );
 
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
-      await windowManager.setMinimumSize(const Size(600, 800));
-      await windowManager.setMinimizable(true);
+      await windowManager.setMinimumSize(Size(minWidth, minHeight));
+      await windowManager.setMinimizable(false);
+      await windowManager.setMaximizable(false);
+      await windowManager.setClosable(false);
     });
   }
 
@@ -850,11 +874,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Icon(
                       Icons.desktop_windows,
-                      size: 50,
+                      size: 30,
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 15),
+                  SizedBox(height: 10),
                   Text(
                     'Break Buddy',
                     style: TextStyle(
@@ -864,7 +888,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 10),
+                  SizedBox(height: 8),
                   Text(
                     'Stay healthy with regular breaks!',
                     style: TextStyle(
@@ -873,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 30),
+                  SizedBox(height: 20),
                   Container(
                     padding: EdgeInsets.all(20),
                     decoration: BoxDecoration(
