@@ -63,12 +63,14 @@ class StatsDialog extends StatelessWidget {
     shareText
         .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
 
-    // Activities completed with full details
+    // Activities completed with full details - sorted by time spent
     if (activityStats.isNotEmpty) {
       shareText.write('ACTIVITIES COMPLETED:\n');
       shareText.write('-' * 50);
       shareText.write('\n\n');
-      for (var stat in activityStats) {
+      final sortedStats = List<ActivityStats>.from(activityStats)
+        ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
+      for (var stat in sortedStats) {
         shareText.write('Activity: ${stat.activity.name}\n');
         shareText.write('Repetitions: ${stat.count} times\n');
         shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
@@ -109,12 +111,14 @@ class StatsDialog extends StatelessWidget {
     shareText
         .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
 
-    // Activities completed with full details
+    // Activities completed with full details - sorted by time spent
     if (activityStats.isNotEmpty) {
       shareText.write('ACTIVITIES COMPLETED:\n');
       shareText.write('-' * 50);
       shareText.write('\n\n');
-      for (var stat in activityStats) {
+      final sortedStats = List<ActivityStats>.from(activityStats)
+        ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
+      for (var stat in sortedStats) {
         shareText.write('Activity: ${stat.activity.name}\n');
         shareText.write('Repetitions: ${stat.count} times\n');
         shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
@@ -159,12 +163,14 @@ class StatsDialog extends StatelessWidget {
     shareText
         .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
 
-    // Activities completed with full details
+    // Activities completed with full details - sorted by time spent
     if (activityStats.isNotEmpty) {
       shareText.write('ACTIVITIES COMPLETED:\n');
       shareText.write('-' * 50);
       shareText.write('\n\n');
-      for (var stat in activityStats) {
+      final sortedStats = List<ActivityStats>.from(activityStats)
+        ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
+      for (var stat in sortedStats) {
         shareText.write('Activity: ${stat.activity.name}\n');
         shareText.write('Repetitions: ${stat.count} times\n');
         shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
@@ -334,7 +340,10 @@ class StatsDialog extends StatelessWidget {
                   shrinkWrap: true,
                   itemCount: activityStats.length,
                   itemBuilder: (context, index) {
-                    final stat = activityStats[index];
+                    // Sort activities by time spent in descending order
+                    final sortedStats = List<ActivityStats>.from(activityStats)
+                      ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
+                    final stat = sortedStats[index];
                     final video = VideoConfig.getVideoForTask(stat.activity.id);
                     return ListTile(
                       leading: Container(
