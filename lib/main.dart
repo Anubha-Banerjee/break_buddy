@@ -91,7 +91,8 @@ Future<void> main() async {
     // Get screen information - this should give us the actual monitor dimensions
     // We'll use a larger initial size first, then adjust
     await windowManager.setSize(const Size(1920, 1080)); // Temporary large size
-    await Future.delayed(const Duration(milliseconds: 100)); // Give it time to resize
+    await Future.delayed(
+        const Duration(milliseconds: 100)); // Give it time to resize
 
     // Now get position to calculate actual screen bounds
     // The screen size should now reflect actual monitor dimensions
@@ -599,7 +600,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _isReminderShowing = true;
-      _breaksTaken++;
     });
 
     // Only handle window focus on desktop platforms
@@ -646,8 +646,9 @@ class _HomeScreenState extends State<HomeScreen> {
           totalWorkingTime: _totalWorkingTime,
           onDismiss: (completedActivities) {
             handleDismiss(completedActivities);
-            // Reset working time display for next cycle when break is completed
+            // Increment breaks taken only when user completes the break (done button)
             setState(() {
+              _breaksTaken++;
               _totalWorkingTime = 0;
             });
           },
