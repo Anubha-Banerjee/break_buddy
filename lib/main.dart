@@ -13,7 +13,7 @@ import 'services/video_server.dart';
 import 'dart:io'; // For Directory
 import 'package:path/path.dart' as p; // For p.join
 import 'dart:math' as math;
-
+import 'package:flutter/foundation.dart';
 // Global video server instance
 final videoServer = VideoServer();
 
@@ -82,7 +82,7 @@ Future<void> main() async {
   }
 
   // Initialize window manager only on desktop platforms
-  if (!Platform.isAndroid && !Platform.isIOS) {
+  if (!kIsWeb &&!Platform.isAndroid && !Platform.isIOS) {
     await windowManager.ensureInitialized();
 
     // Now get the actual screen size
@@ -603,7 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     // Only handle window focus on desktop platforms
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (!kIsWeb && !Platform.isAndroid && !Platform.isIOS) {
       if (!await windowManager.isFocused()) {
         await windowManager.focus();
       }
@@ -616,7 +616,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (BuildContext context) {
         void handleDismiss(List<Activity> completedActivities) {
           Navigator.of(context).pop();
-          if (!Platform.isAndroid && !Platform.isIOS) {
+          if (!kIsWeb && !Platform.isAndroid && !Platform.isIOS) {
             windowManager.setAlwaysOnTop(false);
           }
           setState(() {
