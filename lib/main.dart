@@ -4,9 +4,9 @@ import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart';
 import 'dialogs/exercise_reminder_dialog.dart';
 import 'dialogs/stats_dialog.dart';
+import 'widgets/video_player_dialog.dart';
 import 'models/activity_video.dart';
 import 'models/activity.dart';
-import 'models/activity_sequence.dart';
 import 'services/activity_sequence_service.dart';
 import 'data/activities.dart';
 import 'services/video_server.dart';
@@ -681,6 +681,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Don't reset _totalWorkingTime for snooze - it continues counting
             });
           },
+          onRandomActivity: _playRandomActivity,
         );
       },
     );
@@ -795,6 +796,80 @@ class _HomeScreenState extends State<HomeScreen> {
         totalWorkingTime: _sessionWorkingTime, // Use session time for stats
       ),
     );
+  }
+
+  void _playRandomActivity() async {
+    // Filter activities that have videos available
+    final availableActivities = predefinedActivities
+        .where((activity) =>
+            VideoConfig.getVideoForTask(activity.id) != null &&
+            !activity.id.startsWith('seq_'))
+        .toList();
+
+    if (availableActivities.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No activities available with videos'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Pick a random activity
+    final random = math.Random();
+    final randomActivity =
+        availableActivities[random.nextInt(availableActivities.length)];
+
+    // Get video for the random activity
+    final video = VideoConfig.getVideoForTask(randomActivity.id);
+
+    if (video == null) {
+      return;
+    }
+
+    // Play the activity with infinite loop
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return VideoPlayerDialog(
+            videoPath: video.videoPath,
+            durationInSeconds: video.duration,
+            repeatCount: 999999, // Essentially infinite
+            activityName: randomActivity.name,
+            isLastActivity: false,
+            nextActivityName: null,
+            onTimeTracked: (count, timeSpent) {
+              // Track time for random activity
+              int index = _activityStats.indexWhere(
+                  (stats) => stats.activity.id == randomActivity.id);
+              if (index >= 0) {
+                _activityStats[index] = ActivityStats(
+                  activity: _activityStats[index].activity,
+                  count: _activityStats[index].count + count.toInt(),
+                  timeSpent:
+                      _activityStats[index].timeSpent + timeSpent.toInt(),
+                );
+              } else {
+                _activityStats.add(ActivityStats(
+                  activity: randomActivity,
+                  count: count.toInt(),
+                  timeSpent: timeSpent.toInt(),
+                ));
+              }
+              _totalActivityTime = _activityStats.fold<int>(
+                  0, (sum, stats) => sum + stats.timeSpent);
+              setState(() {});
+            },
+            onComplete: (int completedCount) {
+              Navigator.of(context).pop();
+            },
+          );
+        },
+      );
+    }
   }
 
   Future<bool?> _showQuitConfirmation(BuildContext context) async {

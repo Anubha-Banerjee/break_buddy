@@ -77,81 +77,94 @@ class _ActivityTileState extends State<ActivityTile> {
               print('No video found for activity: ${widget.activity.id}');
             }
           },
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.activity.count.toString(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  image: VideoConfig.getVideoForTask(widget.activity.id)
-                              ?.thumbnailPath !=
-                          null
-                      ? DecorationImage(
-                          image: AssetImage(
-                            VideoConfig.getVideoForTask(widget.activity.id)!
-                                .thumbnailPath,
-                          ),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: VideoConfig.getVideoForTask(widget.activity.id)
-                            ?.thumbnailPath ==
-                        null
-                    ? Icon(
-                        widget.activity.icon,
-                        size: 24,
-                        color: Colors.blue,
-                      )
-                    : null,
-              ),
-              if (_isHovered) ...[
-                const SizedBox(height: 4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  widget.activity.name,
-                  style: const TextStyle(fontSize: 10),
-                  textAlign: TextAlign.center,
+                  widget.activity.count.toString(),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Expanded(
+                  child: Container(
+                    width: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: VideoConfig.getVideoForTask(widget.activity.id)
+                                  ?.thumbnailPath !=
+                              null
+                          ? DecorationImage(
+                              image: AssetImage(
+                                VideoConfig.getVideoForTask(widget.activity.id)!
+                                    .thumbnailPath,
+                              ),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: VideoConfig.getVideoForTask(widget.activity.id)
+                                ?.thumbnailPath ==
+                            null
+                        ? Icon(
+                            widget.activity.icon,
+                            size: 24,
+                            color: Colors.blue,
+                          )
+                        : null,
+                  ),
+                ),
+                if (_isHovered)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: SizedBox(
+                      height: 16,
+                      child: Text(
+                        widget.activity.name,
+                        style: const TextStyle(fontSize: 9),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 16),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 32),
+                      onPressed: widget.activity.count > 0
+                          ? () =>
+                              widget.onCountChanged(widget.activity.count - 1)
+                          : null,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 24,
+                        minHeight: 24,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 32),
+                      onPressed: () =>
+                          widget.onCountChanged(widget.activity.count + 1),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 24,
+                        minHeight: 24,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove, size: 32),
-                    onPressed: widget.activity.count > 0
-                        ? () => widget.onCountChanged(widget.activity.count - 1)
-                        : null,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, size: 32),
-                    onPressed: () =>
-                        widget.onCountChanged(widget.activity.count + 1),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
