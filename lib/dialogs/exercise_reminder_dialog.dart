@@ -872,53 +872,51 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     ],
                   ),
                   const SizedBox(height: 10),
+
                   // Reset activities and Random Activity buttons in a row
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: activities.any((a) => a.count > 0)
-                              ? () {
-                                  setState(() {
-                                    for (var activity in activities) {
-                                      _onActivityCountChanged(activity.id, 0);
-                                    }
-                                  });
-                                }
-                              : null,
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('Reset'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red[600],
-                            side:
-                                BorderSide(color: Colors.red[400]!, width: 1.0),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
+                      OutlinedButton.icon(
+                        onPressed: activities.any((a) => a.count > 0)
+                            ? () {
+                          setState(() {
+                            for (var activity in activities) {
+                              _onActivityCountChanged(activity.id, 0);
+                            }
+                          });
+                        }
+                            : null,
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Reset'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red[600],
+                          side:
+                          BorderSide(color: Colors.red[400]!, width: 1.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: widget.onRandomActivity,
-                          icon: const Icon(Icons.casino, size: 16),
-                          label: const Text('Random'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.indigo[600],
-                            side: BorderSide(
-                                color: Colors.indigo[400]!, width: 1.0),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
+                      OutlinedButton.icon(
+                        onPressed: widget.onRandomActivity,
+                        icon: const Icon(Icons.casino, size: 16),
+                        label: const Text('Random'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.indigo[600],
+                          side: BorderSide(
+                              color: Colors.indigo[400]!, width: 1.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
                           ),
                         ),
                       ),

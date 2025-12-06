@@ -307,7 +307,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Rep ${_playCount}/${widget.repeatCount}',
+                          'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
