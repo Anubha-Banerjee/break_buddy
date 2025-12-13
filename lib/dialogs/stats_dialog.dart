@@ -72,7 +72,9 @@ class StatsDialog extends StatelessWidget {
         ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
       for (var stat in sortedStats) {
         shareText.write('Activity: ${stat.activity.name}\n');
-        shareText.write('Repetitions: ${stat.count} times\n');
+        if (stat.activity.countMatters) {
+          shareText.write('Repetitions: ${stat.count} times\n');
+        }
         shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
       }
       shareText.write('=' * 50);
@@ -120,7 +122,9 @@ class StatsDialog extends StatelessWidget {
         ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
       for (var stat in sortedStats) {
         shareText.write('Activity: ${stat.activity.name}\n');
-        shareText.write('Repetitions: ${stat.count} times\n');
+        if (stat.activity.countMatters) {
+          shareText.write('Repetitions: ${stat.count} times\n');
+        }
         shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
       }
       shareText.write('=' * 50);
@@ -172,7 +176,9 @@ class StatsDialog extends StatelessWidget {
         ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
       for (var stat in sortedStats) {
         shareText.write('Activity: ${stat.activity.name}\n');
-        shareText.write('Repetitions: ${stat.count} times\n');
+        if (stat.activity.countMatters) {
+          shareText.write('Repetitions: ${stat.count} times\n');
+        }
         shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
       }
       shareText.write('=' * 50);
@@ -363,20 +369,26 @@ class StatsDialog extends StatelessWidget {
                             : null,
                       ),
                       title: Text(stat.activity.name),
-                      subtitle: Text('${stat.count} times'),
+                      subtitle: stat.activity.countMatters
+                          ? Text('${stat.count} times')
+                          : null,
                       trailing: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(
-                            '${stat.count} times',
-                            style: const TextStyle(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
+                          if (stat.activity.countMatters)
+                            Text(
+                              '${stat.count} times',
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            )
+                          else
+                            const SizedBox(height: 0),
+                          if (stat.activity.countMatters)
+                            const SizedBox(height: 4),
                           Text(
                             _formatDuration(stat.timeSpent),
                             style: TextStyle(

@@ -286,6 +286,13 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
     print(
         '[DEBUG] Activity time tracked: $activityId, count=$count, time=${timeSpentSeconds}s');
 
+    // Only track activities that lasted 4 seconds or more
+    if (timeSpentSeconds < 4) {
+      print(
+          '[DEBUG] Not recording activity: $activityId (time: ${timeSpentSeconds}s < 4s threshold)');
+      return;
+    }
+
     // Find the activity
     final activityIndex = activities.indexWhere((a) => a.id == activityId);
     if (activityIndex != -1) {
@@ -880,19 +887,18 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       OutlinedButton.icon(
                         onPressed: activities.any((a) => a.count > 0)
                             ? () {
-                          setState(() {
-                            for (var activity in activities) {
-                              _onActivityCountChanged(activity.id, 0);
-                            }
-                          });
-                        }
+                                setState(() {
+                                  for (var activity in activities) {
+                                    _onActivityCountChanged(activity.id, 0);
+                                  }
+                                });
+                              }
                             : null,
                         icon: const Icon(Icons.refresh, size: 16),
                         label: const Text('Reset'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red[600],
-                          side:
-                          BorderSide(color: Colors.red[400]!, width: 1.0),
+                          side: BorderSide(color: Colors.red[400]!, width: 1.0),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 30,
                             vertical: 8,

@@ -13,6 +13,7 @@ final List<Activity> predefinedActivities = [
     name: 'Walking',
     icon: Icons.directions_walk,
     thumbnailPath: 'assets/thumbnails/walking.jpg',
+    countMatters: false,
   ),
   Activity(
     id: 'squat_simple',
@@ -31,6 +32,7 @@ final List<Activity> predefinedActivities = [
     name: 'Nature Walk',
     icon: Icons.nature,
     thumbnailPath: 'assets/thumbnails/nature.jpg',
+    countMatters: false,
   ),
   Activity(
     id: 'breathing',

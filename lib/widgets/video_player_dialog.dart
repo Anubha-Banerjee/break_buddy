@@ -224,8 +224,14 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         count.abs(); // Get absolute value (handles negative quit signal)
     print(
         '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s');
-    if (widget.onTimeTracked != null && actualCount > 0) {
+    // Only track activities that lasted 4 seconds or more
+    if (widget.onTimeTracked != null && actualCount > 0 && timeSpent >= 4) {
+      print(
+          '[VIDEO TIME] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 4s threshold)');
       widget.onTimeTracked!(actualCount, timeSpent);
+    } else if (actualCount > 0 && timeSpent < 4) {
+      print(
+          '[VIDEO TIME] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 4s threshold)');
     }
     widget.onComplete(count);
   }

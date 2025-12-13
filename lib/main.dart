@@ -14,6 +14,7 @@ import 'dart:io'; // For Directory
 import 'package:path/path.dart' as p; // For p.join
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
+
 // Global video server instance
 final videoServer = VideoServer();
 
@@ -82,7 +83,7 @@ Future<void> main() async {
   }
 
   // Initialize window manager only on desktop platforms
-  if (!kIsWeb &&!Platform.isAndroid && !Platform.isIOS) {
+  if (!kIsWeb && !Platform.isAndroid && !Platform.isIOS) {
     await windowManager.ensureInitialized();
 
     // Now get the actual screen size
@@ -711,6 +712,16 @@ class _HomeScreenState extends State<HomeScreen> {
     for (var activity in completedActivities) {
       print('\nProcessing activity: ${activity.name}');
       print('Current count: ${activity.count}');
+
+      // Skip activities with less than 4 seconds of activity time
+      int timeSpent = activity.timeSpent ??
+          ((VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
+              activity.count);
+      if (timeSpent < 4) {
+        print(
+            'Skipping activity: ${activity.name} (time: ${timeSpent}s < 4s threshold)');
+        continue;
+      }
 
       // Find if we already have stats for this activity
       int index = _activityStats
