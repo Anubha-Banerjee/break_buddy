@@ -9,7 +9,8 @@ class Activity {
   int count;
   DateTime? selectionTime; // Track when the activity was first selected
   int? timeSpent; // Track actual time spent (in seconds) for direct video plays
-  final bool countMatters; // Whether the count matters for this activity (false for activities like walking)
+  final bool
+      countMatters; // Whether the count matters for this activity (false for activities like walking)
 
   Activity({
     required this.id,

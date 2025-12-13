@@ -4,6 +4,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart';
 import 'dialogs/exercise_reminder_dialog.dart';
 import 'dialogs/stats_dialog.dart';
+import 'dialogs/settings_dialog.dart';
 import 'widgets/video_player_dialog.dart';
 import 'models/activity_video.dart';
 import 'models/activity.dart';
@@ -14,6 +15,7 @@ import 'dart:io'; // For Directory
 import 'package:path/path.dart' as p; // For p.join
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Global video server instance
 final videoServer = VideoServer();
@@ -518,6 +520,26 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _resetSessionStats();
     _loadSavedSequences();
+    _loadDefaultDuration();
+  }
+
+  Future<void> _loadDefaultDuration() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedDuration = prefs.getInt('default_timer_duration');
+    if (savedDuration != null) {
+      setState(() {
+        _selectedInterval = savedDuration;
+        _secondsRemaining = savedDuration;
+        print(
+            '[SETTINGS] Loaded saved default duration: $savedDuration seconds');
+      });
+    }
+  }
+
+  Future<void> _saveDefaultDuration(int duration) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('default_timer_duration', duration);
+    print('[SETTINGS] Saved default duration: $duration seconds');
   }
 
   Future<void> _loadSavedSequences() async {
@@ -809,6 +831,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => SettingsDialog(
+        defaultDuration: _selectedInterval,
+        onDurationChanged: (newDuration) {
+          setState(() {
+            _selectedInterval = newDuration;
+            _secondsRemaining = newDuration;
+            print(
+                '[SETTINGS] Default duration changed to $newDuration seconds');
+          });
+          _saveDefaultDuration(newDuration);
+        },
+      ),
+    );
+  }
+
   void _playRandomActivity() async {
     // Filter activities that have videos available
     final availableActivities = predefinedActivities
@@ -927,6 +967,11 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.blue[600],
           foregroundColor: Colors.white,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Settings',
+              onPressed: () => _showSettingsDialog(),
+            ),
             IconButton(
               icon: const Icon(Icons.close),
               tooltip: 'Quit',
