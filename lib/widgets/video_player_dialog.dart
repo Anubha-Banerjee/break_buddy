@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 
 class VideoPlayerDialog extends StatefulWidget {
   final String videoPath;
@@ -32,8 +34,13 @@ class VideoPlayerDialog extends StatefulWidget {
 }
 
 class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
+  // media_kit for non-web
   late final Player _player;
   late final VideoController _videoController;
+
+  // video_player for web
+  VideoPlayerController? _webVideoController;
+
   Timer? _timer;
   int _initializeAttempts = 0;
   static const int maxAttempts = 3;
@@ -49,8 +56,10 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   @override
   void initState() {
     super.initState();
-    _player = Player();
-    _videoController = VideoController(_player);
+    if (!kIsWeb) {
+      _player = Player();
+      _videoController = VideoController(_player);
+    }
     _playCount = 1;
     _lastPosition = null;
     _showingNextActivityPopup = false;
@@ -66,18 +75,27 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
           'Initializing video player for: ${widget.videoPath} (Attempt ${_initializeAttempts + 1}/$maxAttempts)');
 
       String videoPath = widget.videoPath;
-      if (Platform.isAndroid) {
-        // For Android, we need to add the asset:/// scheme
-        if (!videoPath.startsWith('asset:///')) {
-          // The video server gives us the raw path, we need to add the asset:/// scheme
-          videoPath = 'asset:///$videoPath';
+
+      // Only check Platform.isAndroid on non-web platforms
+      try {
+        if (Platform.isAndroid) {
+          // For Android, we need to add the asset:/// scheme
+          if (!videoPath.startsWith('asset:///')) {
+            // The video server gives us the raw path, we need to add the asset:/// scheme
+            videoPath = 'asset:///$videoPath';
+          }
+          print('Android video path: $videoPath');
         }
-        print('Android video path: $videoPath');
+      } catch (e) {
+        // On web, Platform operations will throw - just use the path as-is
+        print('Platform check not available on web, using path as-is');
       }
 
       await _player.open(Media(videoPath));
       await _player.setVolume(100);
       await _player.setPlaylistMode(PlaylistMode.single);
+      print('Video opened successfully: $videoPath');
+      print('Player state: ${_player.state}');
 
       _playCount = 1;
       _videoCompleted = false;
@@ -178,6 +196,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       await _player.play();
       await Future.delayed(const Duration(milliseconds: 100));
       print('Video initialized successfully');
+      print('Player playing: ${_player.state.playing}');
+      print('Player duration: ${_player.state.duration}');
 
       if (!mounted) return false;
 
@@ -188,25 +208,104 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     } catch (e) {
       print(
           'Error initializing video player (Attempt ${_initializeAttempts + 1}): $e');
+      print('Stack trace: ${StackTrace.current}');
       return false;
     }
   }
 
   Future<void> _initializePlayer() async {
-    while (_initializeAttempts < maxAttempts) {
-      if (await _initializeVideoController()) {
-        return;
+    if (kIsWeb) {
+      await _initializeWebVideoPlayer();
+    } else {
+      while (_initializeAttempts < maxAttempts) {
+        if (await _initializeVideoController()) {
+          return;
+        }
+        _initializeAttempts++;
+        if (_initializeAttempts < maxAttempts) {
+          await Future.delayed(Duration(seconds: 1));
+        }
       }
-      _initializeAttempts++;
-      if (_initializeAttempts < maxAttempts) {
-        await Future.delayed(Duration(seconds: 1));
+
+      if (mounted) {
+        setState(() {
+          _error = true;
+        });
       }
     }
+  }
 
-    if (mounted) {
-      setState(() {
-        _error = true;
-      });
+  Future<void> _initializeWebVideoPlayer() async {
+    try {
+      print('Initializing web video player for: ${widget.videoPath}');
+
+      String videoUrl = widget.videoPath;
+
+      // On web, use Flutter's asset serving directly
+      // Convert any URL to an asset path
+      if (videoUrl.startsWith('http')) {
+        // Extract filename from URL
+        String filename = videoUrl.split('/').last;
+        videoUrl = 'assets/videos/$filename';
+        print('Converted URL to asset path: $videoUrl');
+      } else if (!videoUrl.startsWith('assets/')) {
+        // If it's a relative path, prepend assets/
+        videoUrl = 'assets/videos/${videoUrl.split('/').last}';
+      }
+
+      print('Loading web video from asset: $videoUrl');
+
+      _webVideoController = VideoPlayerController.asset(videoUrl);
+
+      await _webVideoController!.initialize();
+      print(
+          'Web video initialized, duration: ${_webVideoController!.value.duration}');
+
+      await _webVideoController!.play();
+
+      _webVideoController!.addListener(_webVideoListener);
+
+      print('Web video initialized and playing successfully');
+
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing web video: $e');
+      print('Stack trace: $e');
+      if (mounted) {
+        setState(() {
+          _error = true;
+        });
+      }
+    }
+  }
+
+  void _webVideoListener() {
+    if (_webVideoController == null) return;
+
+    final position = _webVideoController!.value.position;
+    final duration = _webVideoController!.value.duration;
+    final durationMs = widget.durationInSeconds * 1000;
+
+    if (position >= duration && duration > Duration.zero) {
+      // Video ended
+      if (_playCount < widget.repeatCount || widget.repeatCount == 0) {
+        // Loop video
+        _webVideoController!.seekTo(Duration.zero);
+        _webVideoController!.play();
+
+        if (widget.repeatCount > 0) {
+          setState(() {
+            _playCount++;
+          });
+        }
+      } else if (widget.repeatCount > 0 && _playCount >= widget.repeatCount) {
+        // Sequence complete
+        _completeWithTime(_playCount);
+      }
     }
   }
 
@@ -214,7 +313,12 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   void dispose() {
     _timer?.cancel();
     _playbackSubscription?.cancel();
-    _player.dispose();
+    if (!kIsWeb) {
+      _player.dispose();
+    } else {
+      _webVideoController?.removeListener(_webVideoListener);
+      _webVideoController?.dispose();
+    }
     super.dispose();
   }
 
@@ -236,8 +340,133 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     widget.onComplete(count);
   }
 
+  void _handleWebVideoEnd() {
+    if (_playCount < widget.repeatCount) {
+      // Increment count and continue looping (video_player will auto-replay)
+      setState(() {
+        _playCount++;
+      });
+    } else {
+      // Video sequence complete
+      _completeWithTime(_playCount);
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Web platform uses video_player
+    if (kIsWeb) {
+      if (_error) {
+        return Dialog(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Failed to load video.'),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    if (_playCount > 0) {
+                      _completeWithTime(_playCount);
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      if (!_initialized) {
+        return Dialog(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                const Text('Loading video...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxWidth: 480, maxHeight: 360),
+                  child: Container(
+                    color: Colors.black,
+                    child: AspectRatio(
+                      aspectRatio:
+                          _webVideoController?.value.aspectRatio ?? 16 / 9,
+                      child: VideoPlayer(_webVideoController!),
+                    ),
+                  ),
+                ),
+                if (widget.repeatCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Rep $_playCount/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Quit'),
+                ),
+                const SizedBox(width: 16),
+                if (!widget.isLastActivity)
+                  ElevatedButton(
+                    onPressed: () {
+                      _completeWithTime(_playCount);
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Next'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Non-web platforms use media_kit
     if (_error) {
       return Dialog(
         child: Container(
@@ -297,7 +526,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       color: Colors.black,
                       child: Video(
                         controller: _videoController,
-                        controls: AdaptiveVideoControls,
+                        controls: MaterialVideoControls,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -358,9 +587,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // When quitting, pass negative play count to signal quit
-                            // negative = quit, positive = normal completion
-                            _completeWithTime(-_playCount);
+                            Navigator.of(context).pop();
                           },
                           icon: const Icon(Icons.close),
                           label: const Text('Quit'),

@@ -12,14 +12,38 @@ class VideoServer {
   Future<void> start(String assetsPath) async {
     _assetsPath = assetsPath;
 
-    // Create a handler that serves files from the assets directory
-    final handler = shelf.Pipeline()
-        .addMiddleware(shelf.logRequests())
-        .addHandler(createStaticHandler(_assetsPath,
-            defaultDocument: 'index.html', serveFilesOutsidePath: true));
+    // Create the static file handler
+    final staticHandler = createStaticHandler(_assetsPath,
+        defaultDocument: 'index.html', serveFilesOutsidePath: true);
+
+    // Wrap with CORS headers
+    final handler = (shelf.Request request) async {
+      // Handle CORS preflight requests
+      if (request.method == 'OPTIONS') {
+        return shelf.Response.ok('', headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS, POST, PUT',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        });
+      }
+
+      // Call the static handler and add CORS headers to response
+      final response = await staticHandler(request);
+      return response.change(
+        headers: {
+          ...response.headers,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      );
+    };
+
+    final logHandler = shelf.logRequests()(handler);
 
     try {
-      _server = await io.serve(handler, 'localhost', _port);
+      _server = await io.serve(logHandler, 'localhost', _port);
       print('Server running on localhost:${_server!.port}');
     } catch (e) {
       print('Failed to start server: $e');

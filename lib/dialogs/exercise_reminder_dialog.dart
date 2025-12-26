@@ -287,7 +287,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
         '[DEBUG] Activity time tracked: $activityId, count=$count, time=${timeSpentSeconds}s');
 
     // Only track activities that lasted 4 seconds or more
-    if (timeSpentSeconds < 4) {
+    if (timeSpentSeconds < 2) {
       print(
           '[DEBUG] Not recording activity: $activityId (time: ${timeSpentSeconds}s < 4s threshold)');
       return;
