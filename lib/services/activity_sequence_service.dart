@@ -70,7 +70,7 @@ class ActivitySequenceService {
               'Found predefined activity: ${predefined.name} for ID: ${activity.id}');
           return predefined.copyWith(
             count: activity.count,
-            selectionTime: DateTime.now(),
+            selectionTime: activity.selectionTime,
           );
         }).toList();
 

@@ -225,7 +225,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     print(
         '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s');
     // Only track activities that lasted 4 seconds or more
-    if (widget.onTimeTracked != null && actualCount > 0 && timeSpent >= 4) {
+    if (widget.onTimeTracked != null && actualCount > 0 && timeSpent >= 2) {
       print(
           '[VIDEO TIME] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 4s threshold)');
       widget.onTimeTracked!(actualCount, timeSpent);
