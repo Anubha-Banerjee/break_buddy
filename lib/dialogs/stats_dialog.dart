@@ -5,6 +5,9 @@ import 'dart:math' as math;
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
 
 class ActivityStats {
   final Activity activity;
@@ -149,61 +152,152 @@ class StatsDialog extends StatelessWidget {
     });
   }
 
-  void _openGmail(BuildContext context) {
-    // Build the share text with all stats
-    StringBuffer shareText = StringBuffer();
-    shareText.write('Break Buddy - My Workout Stats\n');
-    shareText.write('=' * 50);
-    shareText.write('\n\n');
-
-    // Breaks taken
-    shareText.write('BREAKS TAKEN: $breaksTaken\n\n');
-
-    // Total times
-    shareText.write('-' * 50);
-    shareText.write('\n');
-    shareText
-        .write('Total Activity Time: ${_formatDuration(totalActivityTime)}\n');
-    shareText
-        .write('Total Working Time: ${_formatDuration(totalWorkingTime)}\n\n');
-
-    // Activities completed with full details - sorted by time spent
-    if (activityStats.isNotEmpty) {
-      shareText.write('ACTIVITIES COMPLETED:\n');
-      shareText.write('-' * 50);
-      shareText.write('\n\n');
+  void _openGmail(BuildContext context) async {
+    try {
+      // Build HTML email with stats and activity images
       final sortedStats = List<ActivityStats>.from(activityStats)
         ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
-      for (var stat in sortedStats) {
-        shareText.write('Activity: ${stat.activity.name}\n');
-        if (stat.activity.countMatters) {
-          shareText.write('Repetitions: ${stat.count} times\n');
+
+      StringBuffer htmlBody = StringBuffer();
+      htmlBody.write('''
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+.container { background-color: white; padding: 30px; border-radius: 8px; max-width: 700px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 15px; margin-top: 0; }
+h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
+.stat-item { margin: 15px 0; padding: 12px; background-color: #f0f7ff; border-left: 4px solid #0066cc; border-radius: 4px; }
+.stat-label { font-weight: bold; color: #333; }
+.stat-value { color: #0066cc; font-weight: bold; }
+.activity-card { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background-color: #fafafa; }
+.activity-row { display: flex; align-items: center; gap: 15px; }
+.activity-thumbnail { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
+.activity-content { flex-grow: 1; }
+.activity-name { font-weight: bold; font-size: 15px; color: #333; margin-bottom: 8px; }
+.activity-detail { font-size: 13px; color: #666; margin: 4px 0; }
+.footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center; }
+.email-button { margin-top: 20px; padding: 12px 24px; background-color: #0066cc; color: white; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; }
+.email-button:hover { background-color: #0052a3; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📊 Break Buddy - My Workout Stats</h1>
+
+<div class="stat-item">
+  <span class="stat-label">☕ Breaks Taken:</span>
+  <span class="stat-value">$breaksTaken</span>
+</div>
+
+<div class="stat-item">
+  <span class="stat-label">⏱️ Total Activity Time:</span>
+  <span class="stat-value">${_formatDuration(totalActivityTime)}</span>
+</div>
+
+<div class="stat-item">
+  <span class="stat-label">💼 Total Working Time:</span>
+  <span class="stat-value">${_formatDuration(totalWorkingTime)}</span>
+</div>
+''');
+
+      if (activityStats.isNotEmpty) {
+        htmlBody.write('<h2>🏋️ Activities Completed</h2>');
+        for (var stat in sortedStats) {
+          final video = VideoConfig.getVideoForTask(stat.activity.id);
+
+          htmlBody.write('''
+<div class="activity-card">
+  <div class="activity-row">
+''');
+
+          // Add activity thumbnail image
+          if (video?.thumbnailPath != null) {
+            try {
+              final imageBytes = await rootBundle.load(video!.thumbnailPath);
+              final base64Image = base64Encode(imageBytes.buffer.asUint8List());
+              htmlBody.write(
+                '<img src="data:image/jpeg;base64,$base64Image" class="activity-thumbnail" alt="${stat.activity.name}">',
+              );
+            } catch (e) {
+              print('Error loading image: $e');
+              htmlBody.write(
+                '<div class="activity-thumbnail" style="background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 24px;">🏋️</div>',
+              );
+            }
+          } else {
+            htmlBody.write(
+              '<div class="activity-thumbnail" style="background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 24px;">🏋️</div>',
+            );
+          }
+
+          htmlBody.write('''
+    <div class="activity-content">
+      <div class="activity-name">${stat.activity.name}</div>
+''');
+
+          if (stat.activity.countMatters) {
+            htmlBody.write(
+              '<div class="activity-detail">✓ Repetitions: ${stat.count} times</div>',
+            );
+          }
+
+          htmlBody.write('''
+      <div class="activity-detail">⏱️ Time Spent: ${_formatDuration(stat.timeSpent)}</div>
+    </div>
+  </div>
+</div>
+''');
         }
-        shareText.write('Time Spent: ${_formatDuration(stat.timeSpent)}\n\n');
+      } else {
+        htmlBody.write('<p>No activities completed.</p>');
       }
-      shareText.write('=' * 50);
-      shareText.write('\n\n');
-    } else {
-      shareText.write('No activities completed.\n\n');
+
+      htmlBody.write('''
+<div class="footer">
+<p>Generated by Break Buddy App | Stay healthy with regular breaks! 💪</p>
+</div>
+</div>
+</body>
+</html>
+''');
+
+      final htmlContent = htmlBody.toString();
+
+      // Save HTML to temporary file and open in browser
+      final tempDir = await getTemporaryDirectory();
+      final htmlFile = File(
+        '${tempDir.path}/break_buddy_stats_${DateTime.now().millisecondsSinceEpoch}.html',
+      );
+      await htmlFile.writeAsString(htmlContent);
+
+      // Open the HTML file in the default browser
+      await launchUrl(Uri.file(htmlFile.path),
+          mode: LaunchMode.externalApplication);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Your formatted stats are now displayed in your browser! '
+              'You can copy this content and email it, or take a screenshot.',
+            ),
+            backgroundColor: Colors.blue[600],
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error opening stats: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: Unable to open stats. $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-
-    shareText.write('\nShared from Break Buddy App');
-
-    final finalText = shareText.toString();
-    final body = Uri.encodeComponent(finalText);
-    final subject = Uri.encodeComponent('My Break Buddy Workout Stats');
-
-    // Create Gmail URL - try multiple approaches
-    final gmailUrl =
-        'https://mail.google.com/mail/?view=cm&fs=1&su=$subject&body=$body';
-    final mailtoUrl = 'mailto:?subject=$subject&body=$body';
-
-    // Try to open Gmail web first, then fallback to mailto
-    launchUrl(Uri.parse(gmailUrl), mode: LaunchMode.externalApplication)
-        .catchError((_) {
-      // Fallback to mailto if Gmail web doesn't work
-      return launchUrl(Uri.parse(mailtoUrl));
-    });
   }
 
   @override
@@ -211,7 +305,7 @@ class StatsDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 500,
+        width: 900,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -319,7 +413,7 @@ class StatsDialog extends StatelessWidget {
             const Text(
               'Activities Completed',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
@@ -340,10 +434,17 @@ class StatsDialog extends StatelessWidget {
             else
               Container(
                 constraints: BoxConstraints(
-                  maxHeight: math.min(200, activityStats.length * 60.0),
+                  maxHeight:
+                      math.min(280, (activityStats.length / 4).ceil() * 140.0),
                 ),
-                child: ListView.builder(
+                child: GridView.builder(
                   shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    childAspectRatio: 1.2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
                   itemCount: activityStats.length,
                   itemBuilder: (context, index) {
                     // Sort activities by time spent in descending order
@@ -351,52 +452,66 @@ class StatsDialog extends StatelessWidget {
                       ..sort((a, b) => b.timeSpent.compareTo(a.timeSpent));
                     final stat = sortedStats[index];
                     final video = VideoConfig.getVideoForTask(stat.activity.id);
-                    return ListTile(
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: video?.thumbnailPath != null
-                              ? DecorationImage(
-                                  image: AssetImage(video!.thumbnailPath),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1,
                         ),
-                        child: video?.thumbnailPath == null
-                            ? Icon(stat.activity.icon, color: Colors.blue)
-                            : null,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      title: Text(stat.activity.name),
-                      subtitle: stat.activity.countMatters
-                          ? Text('${stat.count} times')
-                          : null,
-                      trailing: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              image: video?.thumbnailPath != null
+                                  ? DecorationImage(
+                                      image: AssetImage(video!.thumbnailPath),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: video?.thumbnailPath == null
+                                ? Icon(stat.activity.icon,
+                                    color: Colors.blue, size: 20)
+                                : null,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            stat.activity.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
                           if (stat.activity.countMatters)
                             Text(
-                              '${stat.count} times',
+                              '${stat.count}x',
                               style: const TextStyle(
+                                fontSize: 11,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.w500,
-                                fontSize: 14,
                               ),
-                            )
-                          else
-                            const SizedBox(height: 0),
-                          if (stat.activity.countMatters)
-                            const SizedBox(height: 4),
-                          Text(
-                            _formatDuration(stat.timeSpent),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
                             ),
-                          ),
+                          if (stat.timeSpent >= 60)
+                            Text(
+                              _formatDuration(stat.timeSpent),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                              ),
+                            ),
                         ],
                       ),
                     );
