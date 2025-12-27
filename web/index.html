@@ -31,6 +31,63 @@
 
   <title>break_buddy</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Web Notifications Helper -->
+  <script>
+    (function() {
+      window._breakBuddy = {
+        showNotification: function(title, message) {
+          if ('Notification' in window) {
+            // Create a unique tag based on timestamp to allow multiple notifications
+            var tag = 'break-buddy-' + Date.now();
+            
+            if (Notification.permission === 'granted') {
+              var notification = new Notification(title, {
+                body: message,
+                icon: '/favicon.png',
+                tag: tag,
+                requireInteraction: true
+              });
+              
+              // Focus the window when notification is clicked
+              notification.onclick = function() {
+                window.focus();
+                notification.close();
+              };
+            } else if (Notification.permission !== 'denied') {
+              Notification.requestPermission().then(function(permission) {
+                if (permission === 'granted') {
+                  var notification = new Notification(title, {
+                    body: message,
+                    icon: '/favicon.png',
+                    tag: tag,
+                    requireInteraction: true
+                  });
+                  
+                  notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                  };
+                }
+              });
+            }
+          }
+        },
+        
+        requestNotificationPermission: function() {
+          if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+              return true;
+            }
+            if (Notification.permission !== 'denied') {
+              Notification.requestPermission();
+            }
+          }
+          return false;
+        }
+      };
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

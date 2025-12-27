@@ -9,6 +9,7 @@ import 'widgets/video_player_dialog.dart';
 import 'models/activity_video.dart';
 import 'models/activity.dart';
 import 'services/activity_sequence_service.dart';
+import 'services/web_notification_service.dart';
 import 'data/activities.dart';
 import 'services/video_server.dart';
 import 'dart:io'; // For Directory
@@ -140,6 +141,11 @@ Future<void> main() async {
       await windowManager.setMaximizable(false);
       await windowManager.setClosable(false);
     });
+  }
+
+  // Request notification permission on web
+  if (kIsWeb) {
+    WebNotificationService.requestPermission();
   }
 
   runApp(ExerciseReminderApp());
@@ -636,6 +642,14 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isReminderShowing = true;
     });
+
+    // Show web notification if on web platform
+    if (kIsWeb) {
+      WebNotificationService.showTimerNotification(
+        title: 'Break Buddy',
+        message: 'Time for a break!',
+      );
+    }
 
     // Only handle window focus on desktop platforms
     if (!kIsWeb && !Platform.isAndroid && !Platform.isIOS) {
