@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'dart:js_interop';
-import 'package:web/web.dart' as web;
 
 /// Service to handle web notifications for timer alerts
 class WebNotificationService {
@@ -73,4 +72,3 @@ external void _callShowNotification(String title, String message);
 
 @JS('window._breakBuddy.requestNotificationPermission')
 external void _callRequestPermission();
-

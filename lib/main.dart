@@ -43,7 +43,7 @@ Future<void> main() async {
 
         // Construct the path to where Flutter bundles assets in a release build
         // Your video_config.json and video files are expected to be inside
-        // 'data\flutter_assets\assets\' if your original structure was 'project_root/assets/'
+        // 'data\\flutter_assets\\assets\\' if your original structure was 'project_root/assets/'
         // and your VideoServer is set up to serve from a base path given to it.
         //
         // If your VideoServer expects to be given the '.../Release/data/flutter_assets'
@@ -74,7 +74,7 @@ Future<void> main() async {
       print('Attempting to serve assets from: $assetsPath'); // For debugging
       await videoServer.start(assetsPath);
 
-      //await videoServer.start('D:\\AndroidProjects\\break_buddy\\assets');
+      //await videoServer.start('D:\\\\AndroidProjects\\\\break_buddy\\\\assets');
     } catch (e) {
       print('Failed to start video server: $e');
     }

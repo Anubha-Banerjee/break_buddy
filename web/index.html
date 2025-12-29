@@ -37,40 +37,14 @@
     (function() {
       window._breakBuddy = {
         showNotification: function(title, message) {
-          if ('Notification' in window) {
-            // Create a unique tag based on timestamp to allow multiple notifications
-            var tag = 'break-buddy-' + Date.now();
-            
-            if (Notification.permission === 'granted') {
-              var notification = new Notification(title, {
+          if ('serviceWorker' in navigator && 'Notification' in window) {
+            navigator.serviceWorker.ready.then(function(registration) {
+              registration.showNotification(title, {
                 body: message,
-                icon: '/favicon.png',
-                tag: tag,
+                icon: 'favicon.png',
                 requireInteraction: true
               });
-              
-              // Focus the window when notification is clicked
-              notification.onclick = function() {
-                window.focus();
-                notification.close();
-              };
-            } else if (Notification.permission !== 'denied') {
-              Notification.requestPermission().then(function(permission) {
-                if (permission === 'granted') {
-                  var notification = new Notification(title, {
-                    body: message,
-                    icon: '/favicon.png',
-                    tag: tag,
-                    requireInteraction: true
-                  });
-                  
-                  notification.onclick = function() {
-                    window.focus();
-                    notification.close();
-                  };
-                }
-              });
-            }
+            });
           }
         },
         
