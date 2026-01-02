@@ -179,13 +179,23 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
 .activity-name { font-weight: bold; font-size: 15px; color: #333; margin-bottom: 8px; }
 .activity-detail { font-size: 13px; color: #666; margin: 4px 0; }
 .footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center; }
-.email-button { margin-top: 20px; padding: 12px 24px; background-color: #0066cc; color: white; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; }
-.email-button:hover { background-color: #0052a3; }
+.button-container { margin-top: 20px; margin-bottom: 20px; }
+.button-with-help { display: flex; align-items: center; gap: 15px; }
+.gmail-button { padding: 12px 24px; background-color: #ea4335; color: white; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; border: none; cursor: pointer; font-size: 14px; white-space: nowrap; }
+.gmail-button:hover { background-color: #d33425; }
+.help-text { margin: 0; font-size: 13px; color: #666; font-style: italic; }
 </style>
 </head>
 <body>
 <div class="container">
 <h1>📊 Break Buddy - My Workout Stats</h1>
+
+<div class="button-container">
+  <div class="button-with-help">
+    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=" target="_blank" class="gmail-button">📧 Send via Gmail</a>
+    <p class="help-text">Copy the stats below and paste them in the email body.</p>
+  </div>
+</div>
 
 <div class="stat-item">
   <span class="stat-label">☕ Breaks Taken:</span>
