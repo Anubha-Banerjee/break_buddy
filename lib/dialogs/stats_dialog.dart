@@ -166,14 +166,14 @@ class StatsDialog extends StatelessWidget {
 <meta charset="utf-8">
 <style>
 body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-.container { background-color: white; padding: 30px; border-radius: 8px; max-width: 700px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.container { background-color: white; padding: 30px; border-radius: 8px; max-width: 800px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 15px; margin-top: 0; }
 h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
 .stat-item { margin: 15px 0; padding: 12px; background-color: #f0f7ff; border-left: 4px solid #0066cc; border-radius: 4px; }
 .stat-label { font-weight: bold; color: #333; }
 .stat-value { color: #0066cc; font-weight: bold; }
-.activity-card { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background-color: #fafafa; }
-.activity-row { display: flex; align-items: center; gap: 15px; }
+.activities-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+.activity-card { padding: 15px; border: 1px solid #ddd; border-radius: 6px; background-color: #fafafa; display: flex; align-items: center; gap: 15px; }
 .activity-thumbnail { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
 .activity-content { flex-grow: 1; }
 .activity-name { font-weight: bold; font-size: 15px; color: #333; margin-bottom: 8px; }
@@ -214,14 +214,11 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
 ''');
 
       if (activityStats.isNotEmpty) {
-        htmlBody.write('<h2>🏋️ Activities Completed</h2>');
+        htmlBody.write('<h2>🏋️ Activities Completed</h2><div class="activities-grid">');
         for (var stat in sortedStats) {
           final video = VideoConfig.getVideoForTask(stat.activity.id);
 
-          htmlBody.write('''
-<div class="activity-card">
-  <div class="activity-row">
-''');
+          htmlBody.write('<div class="activity-card">');
 
           // Add activity thumbnail image
           if (video?.thumbnailPath != null) {
@@ -243,10 +240,8 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
             );
           }
 
-          htmlBody.write('''
-    <div class="activity-content">
-      <div class="activity-name">${stat.activity.name}</div>
-''');
+          htmlBody.write('<div class="activity-content">');
+          htmlBody.write('<div class="activity-name">${stat.activity.name}</div>');
 
           if (stat.activity.countMatters) {
             htmlBody.write(
@@ -254,13 +249,10 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
             );
           }
 
-          htmlBody.write('''
-      <div class="activity-detail">⏱️ Time Spent: ${_formatDuration(stat.timeSpent)}</div>
-    </div>
-  </div>
-</div>
-''');
+          htmlBody.write('<div class="activity-detail">⏱️ Time Spent: ${_formatDuration(stat.timeSpent)}</div>');
+          htmlBody.write('</div></div>');
         }
+        htmlBody.write('</div>');
       } else {
         htmlBody.write('<p>No activities completed.</p>');
       }
