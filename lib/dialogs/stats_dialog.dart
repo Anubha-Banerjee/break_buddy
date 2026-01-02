@@ -417,7 +417,7 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
               ),
             ),
 
-            const Divider(height: 24),
+            const Divider(height: 16),
 
             // Activity stats
             const Text(
@@ -428,7 +428,7 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             if (activityStats.isEmpty)
               const Padding(
@@ -444,16 +444,15 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
             else
               Container(
                 constraints: BoxConstraints(
-                  maxHeight:
-                      math.min(280, (activityStats.length / 4).ceil() * 140.0),
+                  maxHeight: math.min(300, (activityStats.length / 6).ceil() * 145.0),
                 ),
                 child: GridView.builder(
                   shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    childAspectRatio: 1.2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
+                    crossAxisCount: 6,
+                    childAspectRatio: 1,
+                    crossAxisSpacing: 2,
+                    mainAxisSpacing: 2,
                   ),
                   itemCount: activityStats.length,
                   itemBuilder: (context, index) {
@@ -470,14 +469,14 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(2),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            width: 36,
-                            height: 36,
+                            width: 32,
+                            height: 32,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               image: video?.thumbnailPath != null
@@ -489,26 +488,26 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
                             ),
                             child: video?.thumbnailPath == null
                                 ? Icon(stat.activity.icon,
-                                    color: Colors.blue, size: 20)
+                                    color: Colors.blue, size: 18)
                                 : null,
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox.shrink(),
                           Text(
                             stat.activity.name,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox.shrink(),
                           if (stat.activity.countMatters)
                             Text(
                               '${stat.count}x',
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: 10,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -518,7 +517,7 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
                               _formatDuration(stat.timeSpent),
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9,
                                 color: Colors.grey[600],
                               ),
                             ),
@@ -529,7 +528,7 @@ h2 { color: #333; margin-top: 20px; margin-bottom: 15px; font-size: 18px; }
                 ),
               ),
 
-            const Divider(height: 24),
+            const Divider(height: 16),
 
             // Total times
             ListTile(
