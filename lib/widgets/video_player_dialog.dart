@@ -46,6 +46,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   Duration? _lastPosition;
   late DateTime _startTime;
   bool _isMaximized = true; // Auto-maximize videos
+  double _maxProgressPercentage = 0.0; // Track maximum progress reached
 
   @override
   void initState() {
@@ -93,8 +94,15 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
         final durationMs = widget.durationInSeconds * 1000;
 
+        // Track maximum progress percentage reached
+        final currentProgressPercentage =
+            (currentPositionMs / durationMs) * 100;
+        if (currentProgressPercentage > _maxProgressPercentage) {
+          _maxProgressPercentage = currentProgressPercentage;
+        }
+
         print(
-            'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms');
+            'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%');
 
         if (!hasReachedEnd && currentPositionMs >= (durationMs - 200)) {
           print('Reached end of video');
@@ -224,15 +232,26 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     final actualCount =
         count.abs(); // Get absolute value (handles negative quit signal)
     print(
-        '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s');
-    // Only track activities that lasted 4 seconds or more
-    if (widget.onTimeTracked != null && actualCount > 0 && timeSpent >= 2) {
+        '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%');
+
+    // Only track activities that:
+    // 1. Lasted 2 seconds or more
+    // 2. Were played at least 50% through
+    if (widget.onTimeTracked != null &&
+        actualCount > 0 &&
+        timeSpent >= 2 &&
+        _maxProgressPercentage >= 50.0) {
       print(
-          '[VIDEO TIME] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 4s threshold)');
+          '[VIDEO TIME] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 2s, progress: ${_maxProgressPercentage.toStringAsFixed(1)}% >= 50%)');
       widget.onTimeTracked!(actualCount, timeSpent);
-    } else if (actualCount > 0 && timeSpent < 4) {
-      print(
-          '[VIDEO TIME] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 4s threshold)');
+    } else if (actualCount > 0) {
+      if (timeSpent < 2) {
+        print(
+            '[VIDEO TIME] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 2s threshold)');
+      } else if (_maxProgressPercentage < 50.0) {
+        print(
+            '[VIDEO TIME] Not tracking activity: ${widget.activityName} (progress: ${_maxProgressPercentage.toStringAsFixed(1)}% < 50% threshold)');
+      }
     }
     widget.onComplete(count);
   }
