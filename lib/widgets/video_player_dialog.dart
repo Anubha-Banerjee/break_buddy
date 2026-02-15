@@ -45,6 +45,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   StreamSubscription<bool>? _playbackSubscription;
   Duration? _lastPosition;
   late DateTime _startTime;
+  bool _isMaximized = true; // Auto-maximize videos
 
   @override
   void initState() {
@@ -282,101 +283,204 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
     return Stack(
       children: [
-        Dialog(
-          backgroundColor: Colors.transparent,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  ConstrainedBox(
-                    constraints:
-                        const BoxConstraints(maxWidth: 480, maxHeight: 360),
-                    child: Container(
-                      color: Colors.black,
-                      child: Video(
-                        controller: _videoController,
-                        controls: AdaptiveVideoControls,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                  if (widget.repeatCount > 0)
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(20),
+        if (_isMaximized)
+          // Fullscreen mode
+          Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black87,
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    _isMaximized = false;
+                  });
+                },
+              ),
+              title: Text(widget.activityName),
+            ),
+            body: Column(
+              children: [
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      Container(
+                        color: Colors.black,
+                        width: double.infinity,
+                        child: Video(
+                          controller: _videoController,
+                          controls: AdaptiveVideoControls,
+                          fit: BoxFit.contain,
                         ),
-                        child: Text(
-                          'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      ),
+                      if (widget.repeatCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: const BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
+                    ],
                   ),
                 ),
-                child: Column(
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: const BoxDecoration(
+                    color: Colors.black87,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => _completeWithTime(_playCount),
+                        icon: const Icon(Icons.skip_next),
+                        label: const Text('Next'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _completeWithTime(-_playCount);
+                        },
+                        icon: const Icon(Icons.close),
+                        label: const Text('Quit'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          // Normal dialog mode
+          Dialog(
+            backgroundColor: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  alignment: Alignment.topRight,
                   children: [
-                    Text(
-                      widget.activityName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxWidth: 480, maxHeight: 360),
+                      child: Container(
+                        color: Colors.black,
+                        child: Video(
+                          controller: _videoController,
+                          controls: AdaptiveVideoControls,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _completeWithTime(_playCount),
-                          icon: const Icon(Icons.skip_next),
-                          label: const Text('Next'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
+                    if (widget.repeatCount > 0)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // When quitting, pass negative play count to signal quit
-                            // negative = quit, positive = normal completion
-                            _completeWithTime(-_playCount);
-                          },
-                          icon: const Icon(Icons.close),
-                          label: const Text('Quit'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
+                      ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IconButton(
+                        icon: const Icon(Icons.fullscreen,
+                            color: Colors.white, size: 28),
+                        onPressed: () {
+                          setState(() {
+                            _isMaximized = true;
+                          });
+                        },
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: const BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(8),
+                      bottomRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        widget.activityName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => _completeWithTime(_playCount),
+                            icon: const Icon(Icons.skip_next),
+                            label: const Text('Next'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              // When quitting, pass negative play count to signal quit
+                              // negative = quit, positive = normal completion
+                              _completeWithTime(-_playCount);
+                            },
+                            icon: const Icon(Icons.close),
+                            label: const Text('Quit'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         if (_showingNextActivityPopup)
           Center(
             child: Container(
