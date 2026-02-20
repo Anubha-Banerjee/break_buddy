@@ -316,7 +316,22 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                   });
                 },
               ),
-              title: Text(widget.activityName),
+              iconTheme: const IconThemeData(color: Colors.white),
+              title: Text(
+                widget.activityName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black54,
+                      blurRadius: 6,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
             ),
             body: Column(
               children: [
@@ -358,8 +373,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
-                  decoration: const BoxDecoration(
-                    color: Colors.black87,
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -449,9 +464,9 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
-                  decoration: const BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8),
                       bottomRight: Radius.circular(8),
                     ),
@@ -460,10 +475,17 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                     children: [
                       Text(
                         widget.activityName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -505,17 +527,24 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.black87,
+                color: Colors.black54,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 widget.nextActivityName != null
                     ? 'Starting ${widget.nextActivityName}...'
                     : 'Starting next activity...',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black45,
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
               ),
             ),
