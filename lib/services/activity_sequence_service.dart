@@ -218,13 +218,19 @@ class ActivitySequenceService {
       if (index != -1) {
         final oldSequence = _sequences[index];
         // Only save activities with count > 0 and filter out any sequence activities
+        // IMPORTANT: Preserve the order from the editor (do NOT sort by selectionTime)
+        // and assign new selectionTime to maintain order
         final updatedActivities = activities
             .where((a) => a.count > 0 && !a.id.startsWith('seq_'))
             .map((a) => a.copyWith())
-            .toList()
-          ..sort((a, b) =>
-              a.selectionTime?.compareTo(b.selectionTime ?? DateTime.now()) ??
-              0);
+            .toList();
+
+        // Assign selectionTime based on the new order to maintain it
+        for (int i = 0; i < updatedActivities.length; i++) {
+          updatedActivities[i] = updatedActivities[i].copyWith(
+            selectionTime: DateTime.fromMillisecondsSinceEpoch(i),
+          );
+        }
 
         final updatedSequence = ActivitySequence(
           id: oldSequence.id,
