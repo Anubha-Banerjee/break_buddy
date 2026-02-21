@@ -39,7 +39,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   static const int maxAttempts = 3;
   bool _initialized = false;
   bool _error = false;
-  int _playCount = 1;
+  int _playCount = 1; // Current rep being displayed
+  int _completedReps = 0; // Number of reps that have fully completed
   bool _showingNextActivityPopup = false;
   bool _videoCompleted = false;
   StreamSubscription<bool>? _playbackSubscription;
@@ -54,6 +55,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     _player = Player();
     _videoController = VideoController(_player);
     _playCount = 1;
+    _completedReps = 0;
     _lastPosition = null;
     _showingNextActivityPopup = false;
     _startTime = DateTime.now();
@@ -117,6 +119,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             _videoCompleted = true;
             int unboundedPlayCount = 0;
             setState(() {
+              // A loop means the current rep just finished, so increment completed count
+              _completedReps = _playCount;
               unboundedPlayCount = _playCount + 1;
               // If repeatCount is set, respect it. Otherwise allow unlimited looping
               if (widget.repeatCount > 0) {
@@ -126,13 +130,13 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               }
             });
             print(
-                'Incremented play count to $_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+                'Incremented play count to $_playCount, completed reps: $_completedReps${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
 
             // Only auto-complete if we have a repeatCount target and reached it
             if (widget.repeatCount > 0 &&
                 unboundedPlayCount > widget.repeatCount) {
               print(
-                  'Target count reached ($_playCount/${widget.repeatCount}), preparing to end');
+                  'Target count reached ($_completedReps/${widget.repeatCount}), preparing to end');
               await _player.pause();
 
               if (mounted) {
@@ -145,7 +149,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 }
 
                 if (mounted) {
-                  _completeWithTime(_playCount);
+                  _completeWithTime(_completedReps);
                 }
               }
             } else {
@@ -380,7 +384,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () => _completeWithTime(_playCount),
+                        onPressed: () => _completeWithTime(_completedReps),
                         icon: const Icon(Icons.skip_next),
                         label: const Text('Next'),
                         style: ElevatedButton.styleFrom(
@@ -390,7 +394,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       ),
                       ElevatedButton.icon(
                         onPressed: () {
-                          _completeWithTime(-_playCount);
+                          _completeWithTime(-_completedReps);
                         },
                         icon: const Icon(Icons.close),
                         label: const Text('Quit'),
@@ -493,7 +497,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           ElevatedButton.icon(
-                            onPressed: () => _completeWithTime(_playCount),
+                            onPressed: () => _completeWithTime(_completedReps),
                             icon: const Icon(Icons.skip_next),
                             label: const Text('Next'),
                             style: ElevatedButton.styleFrom(
@@ -503,9 +507,9 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                           ),
                           ElevatedButton.icon(
                             onPressed: () {
-                              // When quitting, pass negative play count to signal quit
+                              // When quitting, pass negative completed rep count to signal quit
                               // negative = quit, positive = normal completion
-                              _completeWithTime(-_playCount);
+                              _completeWithTime(-_completedReps);
                             },
                             icon: const Icon(Icons.close),
                             label: const Text('Quit'),
