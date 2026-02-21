@@ -8,6 +8,7 @@ class ActivityGrid extends StatelessWidget {
   final Function(String, int) onActivityCountChanged;
   final Function(Activity) onDeleteSequence;
   final Function(Activity) onPlaySequence;
+  final Function(Activity) onEditSequence;
   final Function(String, int)?
       onActivityVideoComplete; // New callback for video completion
   final Function(String, int, int)?
@@ -19,6 +20,7 @@ class ActivityGrid extends StatelessWidget {
     required this.onActivityCountChanged,
     required this.onDeleteSequence,
     required this.onPlaySequence,
+    required this.onEditSequence,
     this.onActivityVideoComplete,
     this.onTimeTracked,
   });
@@ -57,6 +59,7 @@ class ActivityGrid extends StatelessWidget {
             firstActivityThumbnail: activity.thumbnailPath,
             onPlay: () => onPlaySequence(activity),
             onDelete: () => onDeleteSequence(activity),
+            onEdit: () => onEditSequence(activity),
           );
         } else {
           return ActivityTile(

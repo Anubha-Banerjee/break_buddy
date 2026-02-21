@@ -1,13 +1,30 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import '../models/activity_sequence.dart';
 import '../models/activity.dart';
 import '../data/activities.dart';
 
 class ActivitySequenceService {
   static const String fileName = 'saved_sequences.json';
+  static const String _prefsKey = 'break_buddy_sequences'; // Key for shared preferences
   List<ActivitySequence> _sequences = [];
+  SharedPreferences? _prefs;
+  bool _initialized = false;
+
+  Future<void> initialize() async {
+    if (_initialized) return;
+    await _initializePrefs();
+    _initialized = true;
+  }
+
+  Future<void> _initializePrefs() async {
+    if (_prefs != null) return;
+    _prefs = await SharedPreferences.getInstance();
+    print('[SequenceService] SharedPreferences initialized');
+  }
 
   Future<String> get _localPath async {
     final directory = await getApplicationSupportDirectory();
@@ -21,10 +38,18 @@ class ActivitySequenceService {
 
   Future<bool> cleanupStoredSequences() async {
     try {
-      final file = await _localFile;
-      if (await file.exists()) {
-        await file.delete();
-        print('Deleted sequences file for cleanup');
+      if (kIsWeb) {
+        // For web, remove from shared preferences
+        await _initializePrefs();
+        await _prefs!.remove(_prefsKey);
+        print('Deleted sequences from SharedPreferences for web cleanup');
+      } else {
+        // For native platforms, delete file
+        final file = await _localFile;
+        if (await file.exists()) {
+          await file.delete();
+          print('Deleted sequences file for cleanup');
+        }
       }
       _sequences = [];
       return true;
@@ -36,14 +61,31 @@ class ActivitySequenceService {
 
   Future<List<ActivitySequence>> loadSequences() async {
     try {
-      final file = await _localFile;
-      if (!await file.exists()) {
-        _sequences = [];
-        return [];
+      await initialize(); // Ensure initialized
+      String? contents;
+
+      if (kIsWeb) {
+        // For web, load from SharedPreferences
+        contents = _prefs!.getString(_prefsKey);
+        print('[SequenceService] Loaded from SharedPreferences (web): ${contents != null ? "Found ${(json.decode(contents) as List).length} sequences" : "No sequences found"}');
+        if (contents == null) {
+          _sequences = [];
+          return [];
+        }
+      } else {
+        // For native platforms, load from file
+        final file = await _localFile;
+        if (!await file.exists()) {
+          _sequences = [];
+          print('[SequenceService] No sequences file found on native platform');
+          return [];
+        }
+        contents = await file.readAsString();
+        print('[SequenceService] Loaded from file (native)');
       }
 
-      final String contents = await file.readAsString();
       final List<dynamic> jsonList = json.decode(contents);
+      print('[SequenceService] Decoded ${jsonList.length} sequences from storage');
 
       _sequences = jsonList.map<ActivitySequence>((json) {
         print('\nLoading sequence from JSON:');
@@ -82,9 +124,10 @@ class ActivitySequenceService {
         );
       }).toList();
 
+      print('[SequenceService] Successfully loaded ${_sequences.length} sequences');
       return _sequences;
     } catch (e) {
-      print('Error loading sequences: $e');
+      print('[SequenceService] Error loading sequences: $e');
       _sequences = [];
       return [];
     }
@@ -113,7 +156,7 @@ class ActivitySequenceService {
   }
 
   Future<void> _saveToFile() async {
-    final file = await _localFile;
+    await initialize(); // Ensure initialized
     final List<Map<String, dynamic>> jsonData = _sequences.map((s) {
       final json = s.toJson();
       print('\nSaving sequence: ${s.name}');
@@ -126,8 +169,24 @@ class ActivitySequenceService {
     }).toList();
 
     final String data = json.encode(jsonData);
-    print('\nSaving to file: $data');
-    await file.writeAsString(data);
+    print('\n[SequenceService] Saving ${_sequences.length} sequences');
+    print('[SequenceService] Serialized data length: ${data.length} characters');
+
+    if (kIsWeb) {
+      // For web, save to SharedPreferences
+      print('[SequenceService] Saving to SharedPreferences (web)');
+      final success = await _prefs!.setString(_prefsKey, data);
+      print('[SequenceService] Save to SharedPreferences success: $success');
+      if (!success) {
+        print('[SequenceService] WARNING: Failed to save to SharedPreferences!');
+      }
+    } else {
+      // For native platforms, save to file
+      print('[SequenceService] Saving to file (native)');
+      final file = await _localFile;
+      await file.writeAsString(data);
+      print('[SequenceService] Sequences saved to file (native)');
+    }
   }
 
   Future<bool> deleteSequence(String id) async {
@@ -144,6 +203,42 @@ class ActivitySequenceService {
     }
 
     return wasRemoved;
+  }
+
+  Future<bool> updateSequence(String id, List<Activity> activities) async {
+    print('\nUpdating sequence with ID: $id');
+    try {
+      final index = _sequences.indexWhere((s) => s.id == id);
+      if (index != -1) {
+        final oldSequence = _sequences[index];
+        // Only save activities with count > 0 and filter out any sequence activities
+        final updatedActivities = activities
+            .where((a) => a.count > 0 && !a.id.startsWith('seq_'))
+            .map((a) => a.copyWith())
+            .toList()
+          ..sort((a, b) =>
+              a.selectionTime?.compareTo(b.selectionTime ?? DateTime.now()) ??
+              0);
+
+        final updatedSequence = ActivitySequence(
+          id: oldSequence.id,
+          name: oldSequence.name,
+          activities: updatedActivities,
+          createdAt: oldSequence.createdAt,
+        );
+
+        _sequences[index] = updatedSequence;
+        print('Sequence updated: ${oldSequence.name}');
+        await _saveToFile();
+        return true;
+      } else {
+        print('Sequence not found for updating');
+        return false;
+      }
+    } catch (e) {
+      print('Error updating sequence: $e');
+      return false;
+    }
   }
 
   List<ActivitySequence> get sequences => List.unmodifiable(_sequences);

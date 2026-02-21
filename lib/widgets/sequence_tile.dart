@@ -5,6 +5,7 @@ class SequenceTile extends StatefulWidget {
   final Activity sequence;
   final VoidCallback onPlay;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   final IconData? firstActivityIcon;
   final String? firstActivityThumbnail;
 
@@ -13,6 +14,7 @@ class SequenceTile extends StatefulWidget {
     required this.sequence,
     required this.onPlay,
     required this.onDelete,
+    required this.onEdit,
     this.firstActivityIcon,
     this.firstActivityThumbnail,
   });
@@ -202,43 +204,67 @@ class _SequenceTileState extends State<SequenceTile> {
               Positioned(
                 top: 0,
                 right: 0,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Delete Sequence'),
-                        content: const Text(
-                            'Are you sure you want to delete this sequence? This cannot be undone.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Edit button
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: widget.onEdit,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              widget.onDelete();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Delete'),
-                          ),
-                        ],
+                          child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                        ),
                       ),
-                    );
-                  },
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    child: const Icon(Icons.delete, size: 14, color: Colors.white),
+                      const SizedBox(width: 4),
+                      // Delete button
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Sequence'),
+                              content: const Text(
+                                  'Are you sure you want to delete this sequence? This cannot be undone.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    widget.onDelete();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: const Icon(Icons.delete, size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
