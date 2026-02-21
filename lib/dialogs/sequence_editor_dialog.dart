@@ -170,19 +170,22 @@ class _SequenceEditorDialogState extends State<SequenceEditorDialog> {
                                                 icon: const Icon(Icons.remove),
                                                 onPressed: () {
                                                   setState(() {
-                                                    if (selectedActivities[i].count > 1) {
+                                                    if (selectedActivities[i]
+                                                            .count >
+                                                        1) {
                                                       selectedActivities[i] =
                                                           selectedActivities[i]
                                                               .copyWith(
-                                                            count:
-                                                                selectedActivities[
-                                                                            i]
-                                                                        .count -
-                                                                    1,
-                                                          );
+                                                        count:
+                                                            selectedActivities[
+                                                                        i]
+                                                                    .count -
+                                                                1,
+                                                      );
                                                     } else {
                                                       // Remove activity if count is 1
-                                                      selectedActivities.removeAt(i);
+                                                      selectedActivities
+                                                          .removeAt(i);
                                                     }
                                                   });
                                                 },
@@ -206,12 +209,11 @@ class _SequenceEditorDialogState extends State<SequenceEditorDialog> {
                                                     selectedActivities[i] =
                                                         selectedActivities[i]
                                                             .copyWith(
-                                                          count:
-                                                              selectedActivities[
-                                                                          i]
-                                                                      .count +
-                                                                  1,
-                                                        );
+                                                      count:
+                                                          selectedActivities[i]
+                                                                  .count +
+                                                              1,
+                                                    );
                                                   });
                                                 },
                                                 iconSize: 18,
