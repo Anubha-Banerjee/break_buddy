@@ -9,7 +9,8 @@ import '../data/activities.dart';
 
 class ActivitySequenceService {
   static const String fileName = 'saved_sequences.json';
-  static const String _prefsKey = 'break_buddy_sequences'; // Key for shared preferences
+  static const String _prefsKey =
+      'break_buddy_sequences'; // Key for shared preferences
   List<ActivitySequence> _sequences = [];
   SharedPreferences? _prefs;
   bool _initialized = false;
@@ -67,7 +68,8 @@ class ActivitySequenceService {
       if (kIsWeb) {
         // For web, load from SharedPreferences
         contents = _prefs!.getString(_prefsKey);
-        print('[SequenceService] Loaded from SharedPreferences (web): ${contents != null ? "Found ${(json.decode(contents) as List).length} sequences" : "No sequences found"}');
+        print(
+            '[SequenceService] Loaded from SharedPreferences (web): ${contents != null ? "Found ${(json.decode(contents) as List).length} sequences" : "No sequences found"}');
         if (contents == null) {
           _sequences = [];
           return [];
@@ -85,7 +87,8 @@ class ActivitySequenceService {
       }
 
       final List<dynamic> jsonList = json.decode(contents);
-      print('[SequenceService] Decoded ${jsonList.length} sequences from storage');
+      print(
+          '[SequenceService] Decoded ${jsonList.length} sequences from storage');
 
       _sequences = jsonList.map<ActivitySequence>((json) {
         print('\nLoading sequence from JSON:');
@@ -124,7 +127,8 @@ class ActivitySequenceService {
         );
       }).toList();
 
-      print('[SequenceService] Successfully loaded ${_sequences.length} sequences');
+      print(
+          '[SequenceService] Successfully loaded ${_sequences.length} sequences');
       return _sequences;
     } catch (e) {
       print('[SequenceService] Error loading sequences: $e');
@@ -170,7 +174,8 @@ class ActivitySequenceService {
 
     final String data = json.encode(jsonData);
     print('\n[SequenceService] Saving ${_sequences.length} sequences');
-    print('[SequenceService] Serialized data length: ${data.length} characters');
+    print(
+        '[SequenceService] Serialized data length: ${data.length} characters');
 
     if (kIsWeb) {
       // For web, save to SharedPreferences
@@ -178,7 +183,8 @@ class ActivitySequenceService {
       final success = await _prefs!.setString(_prefsKey, data);
       print('[SequenceService] Save to SharedPreferences success: $success');
       if (!success) {
-        print('[SequenceService] WARNING: Failed to save to SharedPreferences!');
+        print(
+            '[SequenceService] WARNING: Failed to save to SharedPreferences!');
       }
     } else {
       // For native platforms, save to file

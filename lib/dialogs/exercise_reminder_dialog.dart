@@ -857,7 +857,8 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 onEditSequence: (sequence) async {
                   if (widget.sequenceService == null) return;
 
-                  final sequenceId = sequence.id.substring(4); // Remove 'seq_' prefix
+                  final sequenceId =
+                      sequence.id.substring(4); // Remove 'seq_' prefix
                   final existingSequence =
                       widget.sequenceService!.getSequenceById(sequenceId);
 
@@ -887,8 +888,8 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                             availableActivities: availableActivities,
                             onSave: (updatedActivities) async {
                               // Update sequence in service
-                              await widget.sequenceService!
-                                  .updateSequence(sequenceId, updatedActivities);
+                              await widget.sequenceService!.updateSequence(
+                                  sequenceId, updatedActivities);
 
                               // Reload activities to reflect changes
                               await _initializeActivities();
@@ -1115,6 +1116,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
     );
   }
 }
+
 class _SequenceEditorDialog extends StatefulWidget {
   final ActivitySequence sequence;
   final List<Activity> availableActivities;
@@ -1254,9 +1256,10 @@ class _SequenceEditorDialogState extends State<_SequenceEditorDialog> {
                                         if (oldIndex < newIndex) {
                                           newIndex -= 1;
                                         }
-                                        final item =
-                                            selectedActivities.removeAt(oldIndex);
-                                        selectedActivities.insert(newIndex, item);
+                                        final item = selectedActivities
+                                            .removeAt(oldIndex);
+                                        selectedActivities.insert(
+                                            newIndex, item);
                                       });
                                     },
                                     children: [
@@ -1279,19 +1282,24 @@ class _SequenceEditorDialogState extends State<_SequenceEditorDialog> {
                                             children: [
                                               IconButton(
                                                 icon: const Icon(Icons.remove),
-                                                onPressed: selectedActivities[i].count > 1
-                                                    ? () {
-                                                        setState(() {
-                                                          selectedActivities[i] =
-                                                              selectedActivities[i]
-                                                                  .copyWith(
-                                                            count: selectedActivities[i]
-                                                                    .count -
-                                                                1,
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (selectedActivities[i].count > 1) {
+                                                      selectedActivities[i] =
+                                                          selectedActivities[i]
+                                                              .copyWith(
+                                                            count:
+                                                                selectedActivities[
+                                                                            i]
+                                                                        .count -
+                                                                    1,
                                                           );
-                                                        });
-                                                      }
-                                                    : null,
+                                                    } else {
+                                                      // Remove activity if count is 1
+                                                      selectedActivities.removeAt(i);
+                                                    }
+                                                  });
+                                                },
                                                 iconSize: 18,
                                               ),
                                               Container(
@@ -1312,10 +1320,11 @@ class _SequenceEditorDialogState extends State<_SequenceEditorDialog> {
                                                     selectedActivities[i] =
                                                         selectedActivities[i]
                                                             .copyWith(
-                                                          count: selectedActivities[i]
+                                                      count:
+                                                          selectedActivities[i]
                                                                   .count +
                                                               1,
-                                                        );
+                                                    );
                                                   });
                                                 },
                                                 iconSize: 18,

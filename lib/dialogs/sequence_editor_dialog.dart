@@ -142,9 +142,10 @@ class _SequenceEditorDialogState extends State<SequenceEditorDialog> {
                                         if (oldIndex < newIndex) {
                                           newIndex -= 1;
                                         }
-                                        final item =
-                                            selectedActivities.removeAt(oldIndex);
-                                        selectedActivities.insert(newIndex, item);
+                                        final item = selectedActivities
+                                            .removeAt(oldIndex);
+                                        selectedActivities.insert(
+                                            newIndex, item);
                                       });
                                     },
                                     children: [
@@ -162,16 +163,60 @@ class _SequenceEditorDialogState extends State<SequenceEditorDialog> {
                                           title: Text(
                                             selectedActivities[i].name,
                                           ),
-                                          trailing: IconButton(
-                                            icon: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                selectedActivities.removeAt(i);
-                                              });
-                                            },
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.remove),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    if (selectedActivities[i].count > 1) {
+                                                      selectedActivities[i] =
+                                                          selectedActivities[i]
+                                                              .copyWith(
+                                                            count:
+                                                                selectedActivities[
+                                                                            i]
+                                                                        .count -
+                                                                    1,
+                                                          );
+                                                    } else {
+                                                      // Remove activity if count is 1
+                                                      selectedActivities.removeAt(i);
+                                                    }
+                                                  });
+                                                },
+                                                iconSize: 18,
+                                              ),
+                                              Container(
+                                                width: 40,
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  '${selectedActivities[i].count}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.add),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    selectedActivities[i] =
+                                                        selectedActivities[i]
+                                                            .copyWith(
+                                                          count:
+                                                              selectedActivities[
+                                                                          i]
+                                                                      .count +
+                                                                  1,
+                                                        );
+                                                  });
+                                                },
+                                                iconSize: 18,
+                                              ),
+                                            ],
                                           ),
                                         ),
                                     ],
