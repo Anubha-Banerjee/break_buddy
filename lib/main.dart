@@ -823,6 +823,7 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
           sequenceService: _sequenceService,
+          customActivityService: _customActivityService,
           onSnooze1: () {
             handleDismiss([]);
             setState(() {

@@ -7,6 +7,7 @@ import '../widgets/activity_grid.dart';
 import '../widgets/video_player_dialog.dart';
 import '../data/activities.dart';
 import '../services/activity_sequence_service.dart';
+import '../services/custom_activity_service.dart';
 import '../utils/sequence_expander.dart';
 
 class ExerciseReminderDialog extends StatefulWidget {
@@ -20,6 +21,7 @@ class ExerciseReminderDialog extends StatefulWidget {
   final VoidCallback onRandomActivity; // Callback for random activity
   final double dialogHeight; // Height of the dialog
   final ActivitySequenceService? sequenceService;
+  final CustomActivityService? customActivityService;
 
   const ExerciseReminderDialog({
     super.key,
@@ -33,6 +35,7 @@ class ExerciseReminderDialog extends StatefulWidget {
     required this.onRandomActivity,
     this.dialogHeight = 850, // Default height
     this.sequenceService,
+    this.customActivityService,
   });
 
   @override
@@ -172,8 +175,22 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
       print('[REMINDER] - ${a.name} (${a.id}) - isCustom: ${a is CustomActivity}');
     }
     
-    // Start with predefined activities
-    activities = List.from(predefinedActivities);
+    // Start with predefined activities (excluding custom activities, we'll reload them)
+    activities = predefinedActivities
+        .where((a) => a is! CustomActivity)
+        .toList();
+
+    // Load custom activities from storage
+    if (widget.customActivityService != null) {
+      final customActivities = await widget.customActivityService!.loadCustomActivities();
+      print('Loaded ${customActivities.length} custom activities');
+      
+      if (customActivities.isNotEmpty) {
+        setState(() {
+          activities.addAll(customActivities.cast<Activity>());
+        });
+      }
+    }
 
     // Load saved sequences
     if (widget.sequenceService != null) {
@@ -809,6 +826,49 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error deleting sequence: $e'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                onDeleteCustomActivity: (activity) async {
+                  if (widget.customActivityService != null) {
+                    print('\nDeleting custom activity: ${activity.id}');
+
+                    try {
+                      // Remove from UI immediately
+                      setState(() {
+                        activities.removeWhere((a) => a.id == activity.id);
+                      });
+
+                      // Delete from storage
+                      await widget.customActivityService!
+                          .deleteCustomActivity(activity.id);
+
+                      // Show success message
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Activity "${activity.name}" deleted'),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+
+                      // Reload activities to ensure everything is in sync
+                      await _initializeActivities();
+                    } catch (e) {
+                      print('Error deleting custom activity: $e');
+                      // Show error message
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error deleting activity: $e'),
                             backgroundColor: Colors.red,
                             duration: const Duration(seconds: 2),
                           ),

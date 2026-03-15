@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/activity.dart';
+import '../models/custom_activity.dart';
 import 'activity_tile.dart';
 import 'sequence_tile.dart';
 
@@ -7,6 +8,7 @@ class ActivityGrid extends StatelessWidget {
   final List<Activity> activities;
   final Function(String, int) onActivityCountChanged;
   final Function(Activity) onDeleteSequence;
+  final Function(Activity)? onDeleteCustomActivity;
   final Function(Activity) onPlaySequence;
   final Function(Activity) onEditSequence;
   final Function(String, int)?
@@ -19,6 +21,7 @@ class ActivityGrid extends StatelessWidget {
     required this.activities,
     required this.onActivityCountChanged,
     required this.onDeleteSequence,
+    this.onDeleteCustomActivity,
     required this.onPlaySequence,
     required this.onEditSequence,
     this.onActivityVideoComplete,
@@ -74,6 +77,9 @@ class ActivityGrid extends StatelessWidget {
             onTimeTracked: onTimeTracked != null
                 ? (count, timeSpent) =>
                     onTimeTracked!(activity.id, count, timeSpent)
+                : null,
+            onDelete: (activity is CustomActivity && onDeleteCustomActivity != null)
+                ? () => onDeleteCustomActivity!(activity)
                 : null,
           );
         }
