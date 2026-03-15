@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/activity.dart';
+import '../models/custom_activity.dart';
 import '../models/activity_video.dart';
 import '../widgets/video_player_dialog.dart';
 
@@ -46,16 +47,17 @@ class _ActivityTileState extends State<ActivityTile> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () async {
-            final video = VideoConfig.getVideoForTask(widget.activity.id);
-            if (video != null) {
-              print(
-                  'Playing video: ${video.videoPath} for ${video.duration} seconds');
+            // Check if it's a custom activity
+            if (widget.activity is CustomActivity) {
+              final customActivity = widget.activity as CustomActivity;
+              print('Playing custom video: ${customActivity.videoFilePath}');
               await showDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => VideoPlayerDialog(
-                  videoPath: video.videoPath,
-                  durationInSeconds: video.duration,
+                  videoPath: customActivity.videoFilePath,
+                  durationInSeconds:
+                      60, // Default duration; will be auto-detected by player
                   repeatCount: widget.activity.count,
                   activityName: widget.activity.name,
                   onTimeTracked: widget.onTimeTracked,
@@ -74,7 +76,37 @@ class _ActivityTileState extends State<ActivityTile> {
                 ),
               );
             } else {
-              print('No video found for activity: ${widget.activity.id}');
+              // Handle predefined activities from VideoConfig
+              final video = VideoConfig.getVideoForTask(widget.activity.id);
+              if (video != null) {
+                print(
+                    'Playing video: ${video.videoPath} for ${video.duration} seconds');
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => VideoPlayerDialog(
+                    videoPath: video.videoPath,
+                    durationInSeconds: video.duration,
+                    repeatCount: widget.activity.count,
+                    activityName: widget.activity.name,
+                    onTimeTracked: widget.onTimeTracked,
+                    onComplete: (completedCount, {required bool isQuit}) {
+                      // Use the video complete callback if provided, otherwise fall back to count change
+                      if (widget.onVideoComplete != null) {
+                        widget.onVideoComplete!(completedCount);
+                      } else {
+                        // For backward compatibility, pass absolute value to count change
+                        final validCount =
+                            completedCount < 0 ? 0 : completedCount;
+                        widget.onCountChanged(validCount);
+                      }
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                );
+              } else {
+                print('No video found for activity: ${widget.activity.id}');
+              }
             }
           },
           child: Padding(
@@ -96,21 +128,25 @@ class _ActivityTileState extends State<ActivityTile> {
                     width: 52,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      image: VideoConfig.getVideoForTask(widget.activity.id)
-                                  ?.thumbnailPath !=
-                              null
-                          ? DecorationImage(
-                              image: AssetImage(
-                                VideoConfig.getVideoForTask(widget.activity.id)!
-                                    .thumbnailPath,
-                              ),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
+                      image: (widget.activity is CustomActivity)
+                          ? null
+                          : (VideoConfig.getVideoForTask(widget.activity.id)
+                                      ?.thumbnailPath !=
+                                  null
+                              ? DecorationImage(
+                                  image: AssetImage(
+                                    VideoConfig.getVideoForTask(
+                                            widget.activity.id)!
+                                        .thumbnailPath,
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null),
                     ),
-                    child: VideoConfig.getVideoForTask(widget.activity.id)
-                                ?.thumbnailPath ==
-                            null
+                    child: (widget.activity is CustomActivity) ||
+                            (VideoConfig.getVideoForTask(widget.activity.id)
+                                    ?.thumbnailPath ==
+                                null)
                         ? Icon(
                             widget.activity.icon,
                             size: 24,

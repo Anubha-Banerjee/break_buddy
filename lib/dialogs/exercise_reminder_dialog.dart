@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/activity.dart';
+import '../models/custom_activity.dart';
 import '../models/activity_video.dart';
 import '../models/activity_sequence.dart';
 import '../widgets/activity_grid.dart';
@@ -166,6 +167,11 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
   Future<void> _initializeActivities() async {
     print('\nInitializing activities...');
+    print('[REMINDER] Total activities to initialize: ${predefinedActivities.length}');
+    for (var a in predefinedActivities) {
+      print('[REMINDER] - ${a.name} (${a.id}) - isCustom: ${a is CustomActivity}');
+    }
+    
     // Start with predefined activities
     activities = List.from(predefinedActivities);
 
@@ -352,10 +358,12 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
     // Get only activities that have videos and are not sequences
     var selectedActivities = activities
-        .where((activity) =>
-            activity.count > 0 &&
-            !activity.id.startsWith('seq_') &&
-            VideoConfig.getVideoForTask(activity.id) != null)
+        .where((activity) {
+          // Include activities that have videos (predefined) or are custom activities
+          final hasVideo = VideoConfig.getVideoForTask(activity.id) != null ||
+              activity is CustomActivity;
+          return activity.count > 0 && !activity.id.startsWith('seq_') && hasVideo;
+        })
         .toList()
       ..sort((a, b) {
         final aTime = a.selectionTime;
@@ -390,8 +398,9 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
           activities.indexWhere((a) => a.id == nextActivity!.id);
       final activity = activities[_currentActivityIndex];
       final video = VideoConfig.getVideoForTask(activity.id);
+      final isCustomActivity = activity is CustomActivity;
 
-      if (video != null) {
+      if (video != null || isCustomActivity) {
         print(
             'Playing video ${_currentActivityIndex + 1} of ${activities.length}: ${activity.name} (${activity.count} times)');
 
@@ -405,10 +414,13 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
             builder: (BuildContext context) {
               // Get sorted activities to find next in sequence
               var sortedActivities = activities
-                  .where((activity) =>
-                      activity.count > 0 &&
-                      activity.selectionTime != null &&
-                      VideoConfig.getVideoForTask(activity.id) != null)
+                  .where((activity) {
+                    final hasVideo = VideoConfig.getVideoForTask(activity.id) != null ||
+                        activity is CustomActivity;
+                    return activity.count > 0 &&
+                        activity.selectionTime != null &&
+                        hasVideo;
+                  })
                   .toList()
                 ..sort((a, b) => a.selectionTime!.compareTo(b.selectionTime!));
 
@@ -417,10 +429,13 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
 
               // Get all remaining activities to determine if this is the last one
               var remainingActivities = activities
-                  .where((a) =>
-                      a.count > 0 &&
-                      a.selectionTime != null &&
-                      VideoConfig.getVideoForTask(a.id) != null)
+                  .where((a) {
+                    final hasVideo = VideoConfig.getVideoForTask(a.id) != null ||
+                        a is CustomActivity;
+                    return a.count > 0 &&
+                        a.selectionTime != null &&
+                        hasVideo;
+                  })
                   .toList()
                 ..sort((a, b) => a.selectionTime!.compareTo(b.selectionTime!));
 
@@ -438,8 +453,10 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
               }
 
               return VideoPlayerDialog(
-                videoPath: video.videoPath,
-                durationInSeconds: video.duration,
+                videoPath: isCustomActivity
+                    ? (activity as CustomActivity).videoFilePath
+                    : video!.videoPath,
+                durationInSeconds: isCustomActivity ? 60 : video!.duration,
                 repeatCount: activity.count,
                 activityName: activity.name,
                 isLastActivity: isLastActivity,
@@ -447,10 +464,13 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 onTimeTracked: (count, timeSpent) {
                   print(
                       '[DEBUG] Sequence video time tracked: ${activity.name}, count=$count, time=${timeSpent}s');
+                  // Convert seconds to milliseconds for stats calculation
+                  int timeSpentMs = timeSpent * 1000;
                   activityTimeSpent[activity.id] =
-                      (activityTimeSpent[activity.id] ?? 0) + timeSpent;
+                      (activityTimeSpent[activity.id] ?? 0) + timeSpentMs;
+                  final totalTime = activityTimeSpent[activity.id] ?? 0;
                   print(
-                      '[DEBUG] Total time for ${activity.name}: ${activityTimeSpent[activity.id]}s');
+                      '[DEBUG] Total time for ${activity.name}: ${totalTime}ms (${(totalTime / 1000).toStringAsFixed(1)}s)');
                 },
                 onComplete: (int completedCount, {required bool isQuit}) async {
                   if (mounted) {
@@ -465,16 +485,18 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                     final actualCompletedCount = actualCount > 0 ? actualCount : 0;
 
                     print(
-                        '[DEBUG] onComplete called: completedCount=$completedCount, userQuit=$userQuit, actualCount=$actualCount, actualCompletedCount=$actualCompletedCount');
+                        '[EXERCISE_ON_COMPLETE] onComplete called for "${activity.name}" (${activity.id}), isCustom=${activity is CustomActivity}');
                     print(
-                        '[DEBUG] Activity: ${activity.name} (${activity.id})');
+                        '[EXERCISE_ON_COMPLETE] completedCount=$completedCount, userQuit=$userQuit, actualCount=$actualCount, actualCompletedCount=$actualCompletedCount');
+                    print(
+                        '[EXERCISE_ON_COMPLETE] Activity: ${activity.name} (${activity.id})');
 
                     // Mark this activity as completed in our tracking map
                     setState(() {
                       completedActivityCounts[activity.id] =
                           actualCompletedCount;
                       print(
-                          '[DEBUG] Stored in completedActivityCounts: ${activity.id} => $actualCompletedCount');
+                          '[EXERCISE_TRACKING] Stored in completedActivityCounts: ${activity.id} => $actualCompletedCount, isCustom=${activity is CustomActivity}');
                       final index =
                           activities.indexWhere((a) => a.id == activity.id);
                       if (index != -1) {
@@ -500,7 +522,7 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       }
                       return a.count > 0 &&
                           !a.id.startsWith('seq_') &&
-                          VideoConfig.getVideoForTask(a.id) != null;
+                          (a is CustomActivity || VideoConfig.getVideoForTask(a.id) != null);
                     });
 
                     if (!hasRemainingActivities) {
@@ -1052,12 +1074,14 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                                     ))
                                 .toList();
 
-                            print('\nCompleted activities for stats:');
+                            print('\n[DONE_BUTTON_CLICKED] Completed activities for stats:');
+                            print('[DONE_BUTTON_CLICKED] Total completed activities: ${completedActivities.length}');
                             for (var activity in completedActivities) {
                               print(
-                                  '- ${activity.name} (${activity.id}): count=${activity.count}, time=${activity.timeSpent}s');
+                                  '[DONE_BUTTON_CLICKED] - ${activity.name} (${activity.id}): count=${activity.count}, time=${activity.timeSpent}ms, isCustom=${activity is CustomActivity}');
                             }
 
+                            print('[CALLING_ON_DISMISS] Calling onDismiss with ${completedActivities.length} activities');
                             widget.onDismiss(completedActivities);
                           },
                           icon: const Icon(Icons.check_circle, size: 18),

@@ -94,7 +94,13 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       _player.stream.position.listen((position) async {
         final currentPositionMs = position.inMilliseconds;
         final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
-        final durationMs = widget.durationInSeconds * 1000;
+        // Use actual video duration if available (from media_kit); fall back to widget duration
+        final actualDurationMs = _player.state.duration.inMilliseconds;
+        final durationMs = actualDurationMs > 0 ? actualDurationMs : (widget.durationInSeconds * 1000);
+        
+        if (actualDurationMs > 0) {
+          print('[VIDEO_DURATION] Actual video duration: ${actualDurationMs}ms (${(actualDurationMs/1000).toStringAsFixed(1)}s)');
+        }
 
         // Track maximum progress percentage reached
         final currentProgressPercentage =
@@ -112,7 +118,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         }
 
         if (hasReachedEnd && currentPositionMs < 200 && !_videoCompleted) {
-          print('Loop detected: Video restarted from beginning');
+          print('[LOOP_DETECTED] Video restarted from beginning. PlayCount: $_playCount, RepeatCount: ${widget.repeatCount}');
           hasReachedEnd = false;
 
           if (mounted) {
@@ -130,7 +136,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               }
             });
             print(
-                'Incremented play count to $_playCount, completed reps: $_completedReps${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+                '[LOOP_COMPLETED] Incremented play count to $_playCount, completed reps: $_completedReps${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
 
             // Only auto-complete if we have a repeatCount target and reached it
             if (widget.repeatCount > 0 &&
@@ -236,7 +242,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     final actualCount =
         count.abs(); // Get absolute value (handles negative quit signal)
     print(
-        '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%, isQuit: $isQuit');
+        '[COMPLETE_WITH_TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%, isQuit: $isQuit');
 
     // Only track activities that:
     // 1. Lasted 2 seconds or more
@@ -246,17 +252,18 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         timeSpent >= 2 &&
         _maxProgressPercentage >= 50.0) {
       print(
-          '[VIDEO TIME] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 2s, progress: ${_maxProgressPercentage.toStringAsFixed(1)}% >= 50%)');
+          '[VIDEO_TIME_TRACKING] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 2s, progress: ${_maxProgressPercentage.toStringAsFixed(1)}% >= 50%)');
       widget.onTimeTracked!(actualCount, timeSpent);
     } else if (actualCount > 0) {
       if (timeSpent < 2) {
         print(
-            '[VIDEO TIME] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 2s threshold)');
+            '[VIDEO_TIME_SKIP] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 2s threshold)');
       } else if (_maxProgressPercentage < 50.0) {
         print(
-            '[VIDEO TIME] Not tracking activity: ${widget.activityName} (progress: ${_maxProgressPercentage.toStringAsFixed(1)}% < 50% threshold)');
+            '[VIDEO_TIME_SKIP] Not tracking activity: ${widget.activityName} (progress: ${_maxProgressPercentage.toStringAsFixed(1)}% < 50% threshold)');
       }
     }
+    print('[CALLING_ON_COMPLETE] Calling onComplete with count=$actualCount, isQuit=$isQuit for ${widget.activityName}');
     widget.onComplete(count, isQuit: isQuit);
   }
 

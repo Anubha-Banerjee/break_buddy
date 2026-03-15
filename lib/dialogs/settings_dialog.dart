@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class SettingsDialog extends StatefulWidget {
   final int defaultDuration;
   final Function(int newDuration) onDurationChanged;
+  final VoidCallback? onAddCustomActivity;
 
   const SettingsDialog({
     Key? key,
     required this.defaultDuration,
     required this.onDurationChanged,
+    this.onAddCustomActivity,
   }) : super(key: key);
 
   @override
@@ -24,7 +26,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     super.initState();
     _selectedDuration = widget.defaultDuration;
     _customDurationController = TextEditingController();
-    
+
     // Check if the current duration matches any preset option
     final timerOptions = {
       '30 minutes': 1800,
@@ -32,7 +34,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       '45 minutes': 2700,
       '60 minutes': 3600,
     };
-    
+
     _isCustom = !timerOptions.containsValue(_selectedDuration);
     if (_isCustom) {
       _customDurationController.text = (_selectedDuration ~/ 60).toString();
@@ -135,11 +137,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ),
               ],
             ),
-            
+
             // Custom duration input
             if (_isCustom)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -174,6 +177,48 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   ],
                 ),
               ),
+
+            const Divider(height: 24),
+
+            // Custom Activities Section
+            const Text(
+              'Activities',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: widget.onAddCustomActivity,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Add Custom Activity'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: const Text(
+                'Create your own activities by uploading custom videos. Each repetition will loop the entire video once.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.green,
+                ),
+              ),
+            ),
 
             const Divider(height: 24),
 

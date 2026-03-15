@@ -5,10 +5,13 @@ import 'package:media_kit/media_kit.dart';
 import 'dialogs/exercise_reminder_dialog.dart';
 import 'dialogs/stats_dialog.dart';
 import 'dialogs/settings_dialog.dart';
+import 'dialogs/add_custom_activity_dialog.dart';
 import 'widgets/video_player_dialog.dart';
 import 'models/activity_video.dart';
 import 'models/activity.dart';
+import 'models/custom_activity.dart';
 import 'services/activity_sequence_service.dart';
+import 'services/custom_activity_service.dart';
 import 'data/activities.dart';
 import 'services/video_server.dart';
 import 'dart:io'; // For Directory
@@ -520,7 +523,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ActivityStats> _activityStats = [];
   int _totalActivityTime = 0;
   final ActivitySequenceService _sequenceService = ActivitySequenceService();
+  final CustomActivityService _customActivityService = CustomActivityService();
   List<Activity> _savedSequences = [];
+  List<CustomActivity> _customActivities = [];
 
   // Timer interval options (in seconds)
   final Map<String, int> _timerOptions = {
@@ -535,6 +540,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _resetSessionStats();
     _loadSavedSequences();
+    _loadCustomActivities();
     _loadDefaultDuration();
   }
 
@@ -584,6 +590,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Add saved sequences to predefined activities
       predefinedActivities.addAll(_savedSequences);
+    });
+  }
+
+  Future<void> _loadCustomActivities() async {
+    final customActivities =
+        await _customActivityService.loadCustomActivities();
+    setState(() {
+      // Remove any existing custom activities from predefined activities
+      predefinedActivities
+          .removeWhere((activity) => activity.id.startsWith('custom_'));
+
+      _customActivities = customActivities;
+
+      // Add custom activities to predefined activities
+      predefinedActivities.addAll(_customActivities);
+
+      print('[MAIN] Loaded ${_customActivities.length} custom activities');
     });
   }
 
@@ -658,7 +681,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -968,17 +992,38 @@ class _HomeScreenState extends State<HomeScreen> {
           });
           _saveDefaultDuration(newDuration);
         },
+        onAddCustomActivity: _showAddCustomActivityDialog,
+      ),
+    );
+  }
+
+  void _showAddCustomActivityDialog() {
+    Navigator.of(context).pop(); // Close settings dialog first
+    showDialog(
+      context: context,
+      builder: (context) => AddCustomActivityDialog(
+        onActivityAdded: (customActivity) {
+          setState(() {
+            // Add the custom activity to the list and to predefined activities
+            _customActivities.add(customActivity);
+            predefinedActivities.add(customActivity);
+            print('[MAIN] Added custom activity: ${customActivity.name}');
+          });
+        },
       ),
     );
   }
 
   void _playRandomActivity() async {
-    // Filter activities that have videos available
-    final availableActivities = predefinedActivities
-        .where((activity) =>
-            VideoConfig.getVideoForTask(activity.id) != null &&
-            !activity.id.startsWith('seq_'))
-        .toList();
+    // Filter activities that have videos available (both predefined and custom)
+    final availableActivities = predefinedActivities.where((activity) {
+      // Include custom activities or predefined activities with videos
+      if (activity is CustomActivity) {
+        return true; // Custom activities always have videos
+      }
+      return VideoConfig.getVideoForTask(activity.id) != null &&
+          !activity.id.startsWith('seq_');
+    }).toList();
 
     if (availableActivities.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -995,54 +1040,101 @@ class _HomeScreenState extends State<HomeScreen> {
     final randomActivity =
         availableActivities[random.nextInt(availableActivities.length)];
 
-    // Get video for the random activity
-    final video = VideoConfig.getVideoForTask(randomActivity.id);
+    // Check if it's a custom activity or predefined
+    if (randomActivity is CustomActivity) {
+      // Handle custom activity
+      print('Playing random custom activity: ${randomActivity.name}');
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (BuildContext context) {
+            return VideoPlayerDialog(
+              videoPath: randomActivity.videoFilePath,
+              durationInSeconds: 60, // Default duration; will be auto-detected
+              repeatCount: 999999, // Essentially infinite
+              activityName: randomActivity.name,
+              isLastActivity: false,
+              nextActivityName: null,
+              onTimeTracked: (count, timeSpent) {
+                // Track time for random activity
+                int index = _activityStats.indexWhere(
+                    (stats) => stats.activity.id == randomActivity.id);
+                if (index >= 0) {
+                  _activityStats[index] = ActivityStats(
+                    activity: _activityStats[index].activity,
+                    count: _activityStats[index].count + count.toInt(),
+                    timeSpent:
+                        _activityStats[index].timeSpent + timeSpent.toInt(),
+                  );
+                } else {
+                  _activityStats.add(ActivityStats(
+                    activity: randomActivity,
+                    count: count.toInt(),
+                    timeSpent: timeSpent.toInt(),
+                  ));
+                }
+                _totalActivityTime = _activityStats.fold<int>(
+                    0, (sum, stats) => sum + stats.timeSpent);
+                setState(() {});
+              },
+              onComplete: (int completedCount, {required bool isQuit}) {
+                Navigator.of(context).pop();
+              },
+            );
+          },
+        );
+      }
+    } else {
+      // Handle predefined activity
+      final video = VideoConfig.getVideoForTask(randomActivity.id);
 
-    if (video == null) {
-      return;
-    }
+      if (video == null) {
+        return;
+      }
 
-    // Play the activity with infinite loop
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return VideoPlayerDialog(
-            videoPath: video.videoPath,
-            durationInSeconds: video.duration,
-            repeatCount: 999999, // Essentially infinite
-            activityName: randomActivity.name,
-            isLastActivity: false,
-            nextActivityName: null,
-            onTimeTracked: (count, timeSpent) {
-              // Track time for random activity
-              int index = _activityStats.indexWhere(
-                  (stats) => stats.activity.id == randomActivity.id);
-              if (index >= 0) {
-                _activityStats[index] = ActivityStats(
-                  activity: _activityStats[index].activity,
-                  count: _activityStats[index].count + count.toInt(),
-                  timeSpent:
-                      _activityStats[index].timeSpent + timeSpent.toInt(),
-                );
-              } else {
-                _activityStats.add(ActivityStats(
-                  activity: randomActivity,
-                  count: count.toInt(),
-                  timeSpent: timeSpent.toInt(),
-                ));
-              }
-              _totalActivityTime = _activityStats.fold<int>(
-                  0, (sum, stats) => sum + stats.timeSpent);
-              setState(() {});
-            },
-            onComplete: (int completedCount, {required bool isQuit}) {
-              Navigator.of(context).pop();
-            },
-          );
-        },
-      );
+      // Play the activity with infinite loop
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (BuildContext context) {
+            return VideoPlayerDialog(
+              videoPath: video.videoPath,
+              durationInSeconds: video.duration,
+              repeatCount: 999999, // Essentially infinite
+              activityName: randomActivity.name,
+              isLastActivity: false,
+              nextActivityName: null,
+              onTimeTracked: (count, timeSpent) {
+                // Track time for random activity
+                int index = _activityStats.indexWhere(
+                    (stats) => stats.activity.id == randomActivity.id);
+                if (index >= 0) {
+                  _activityStats[index] = ActivityStats(
+                    activity: _activityStats[index].activity,
+                    count: _activityStats[index].count + count.toInt(),
+                    timeSpent:
+                        _activityStats[index].timeSpent + timeSpent.toInt(),
+                  );
+                } else {
+                  _activityStats.add(ActivityStats(
+                    activity: randomActivity,
+                    count: count.toInt(),
+                    timeSpent: timeSpent.toInt(),
+                  ));
+                }
+                _totalActivityTime = _activityStats.fold<int>(
+                    0, (sum, stats) => sum + stats.timeSpent);
+                setState(() {});
+              },
+              onComplete: (int completedCount, {required bool isQuit}) {
+                Navigator.of(context).pop();
+              },
+            );
+          },
+        );
+      }
     }
   }
 
@@ -1285,14 +1377,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: [
                                       Text(
                                         _isTimerActive
-                                            ? (_isTimerPaused 
-                                                ? _formatTime(_pauseSecondsRemaining)
-                                                : _formatTime(_secondsRemaining))
+                                            ? (_isTimerPaused
+                                                ? _formatTime(
+                                                    _pauseSecondsRemaining)
+                                                : _formatTime(
+                                                    _secondsRemaining))
                                             : '--:--',
                                         style: TextStyle(
                                           fontSize: 42,
                                           fontWeight: FontWeight.bold,
-                                          color: _isTimerPaused ? Colors.orange[600] : Colors.blue[600],
+                                          color: _isTimerPaused
+                                              ? Colors.orange[600]
+                                              : Colors.blue[600],
                                           fontFamily: 'monospace',
                                         ),
                                       ),
@@ -1305,7 +1401,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                             : 'Ready to start',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: _isTimerPaused ? Colors.orange[600] : Colors.grey[600],
+                                          color: _isTimerPaused
+                                              ? Colors.orange[600]
+                                              : Colors.grey[600],
                                         ),
                                       ),
                                     ],
@@ -1351,10 +1449,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: _isTimerActive
                             ? (_isTimerPaused ? _resumeTimer : _showPauseDialog)
                             : null,
-                        icon: Icon(_isTimerPaused ? Icons.play_arrow : Icons.pause),
-                        label: Text(_isTimerPaused ? 'Resume Timer' : 'Pause Timer'),
+                        icon: Icon(
+                            _isTimerPaused ? Icons.play_arrow : Icons.pause),
+                        label: Text(
+                            _isTimerPaused ? 'Resume Timer' : 'Pause Timer'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _isTimerPaused ? Colors.green : Colors.orange,
+                          backgroundColor:
+                              _isTimerPaused ? Colors.green : Colors.orange,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(
                               horizontal: 20, vertical: 15),
