@@ -78,9 +78,10 @@ class ActivityGrid extends StatelessWidget {
                 ? (count, timeSpent) =>
                     onTimeTracked!(activity.id, count, timeSpent)
                 : null,
-            onDelete: (activity is CustomActivity && onDeleteCustomActivity != null)
-                ? () => onDeleteCustomActivity!(activity)
-                : null,
+            onDelete:
+                (activity is CustomActivity && onDeleteCustomActivity != null)
+                    ? () => onDeleteCustomActivity!(activity)
+                    : null,
           );
         }
       },

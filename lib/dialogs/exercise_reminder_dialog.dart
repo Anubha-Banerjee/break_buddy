@@ -328,6 +328,17 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
           (activityTimeSpent[activity.id] ?? 0) + timeSpentSeconds;
       print(
           '[DEBUG] Total time for ${activity.name}: ${activityTimeSpent[activity.id]}s');
+
+      // Also record the count for this custom activity
+      // This ensures custom activities that repeat are counted towards stats
+      if (completedActivityCounts.containsKey(activity.id)) {
+        completedActivityCounts[activity.id] =
+            (completedActivityCounts[activity.id] ?? 0) + count;
+      } else {
+        completedActivityCounts[activity.id] = count;
+      }
+      print(
+          '[DEBUG] Recorded count for ${activity.name}: ${completedActivityCounts[activity.id]}');
     }
   }
 

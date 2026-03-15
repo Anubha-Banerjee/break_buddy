@@ -182,8 +182,8 @@ class _ActivityTileState extends State<ActivityTile> {
                         IconButton(
                           icon: const Icon(Icons.remove, size: 32),
                           onPressed: widget.activity.count > 0
-                              ? () =>
-                                  widget.onCountChanged(widget.activity.count - 1)
+                              ? () => widget
+                                  .onCountChanged(widget.activity.count - 1)
                               : null,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
@@ -206,7 +206,9 @@ class _ActivityTileState extends State<ActivityTile> {
                   ],
                 ),
                 // Delete button for custom activities on hover
-                if (_isHovered && widget.activity is CustomActivity && widget.onDelete != null)
+                if (_isHovered &&
+                    widget.activity is CustomActivity &&
+                    widget.onDelete != null)
                   Positioned(
                     top: 0,
                     right: 0,
