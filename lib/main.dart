@@ -509,6 +509,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _secondsRemaining = 1800; // Default 30 minutes = 1800 seconds
   int _selectedInterval = 1800; // Default interval in seconds
   bool _isTimerActive = false;
+  bool _isTimerPaused = false;
+  int _pauseSecondsRemaining = 0;
   bool _isReminderShowing = false;
   int _totalWorkingTime =
       0; // Track working time since last break (resets on completion)
@@ -604,19 +606,30 @@ class _HomeScreenState extends State<HomeScreen> {
   void startTimer() {
     setState(() {
       _isTimerActive = true;
+      _isTimerPaused = false;
       _secondsRemaining = _selectedInterval; // Use selected interval
     });
 
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-          // Increment both working time counters
-          _totalWorkingTime++;
-          _sessionWorkingTime++;
-        } else {
-          _showExerciseReminder();
-          _secondsRemaining = _selectedInterval; // Reset to selected interval
+        // Handle pause countdown
+        if (_isTimerPaused && _pauseSecondsRemaining > 0) {
+          _pauseSecondsRemaining--;
+          if (_pauseSecondsRemaining == 0) {
+            _isTimerPaused = false; // Resume timer after pause
+          }
+        }
+        // Handle main timer countdown (only if not paused)
+        else if (!_isTimerPaused) {
+          if (_secondsRemaining > 0) {
+            _secondsRemaining--;
+            // Increment both working time counters
+            _totalWorkingTime++;
+            _sessionWorkingTime++;
+          } else {
+            _showExerciseReminder();
+            _secondsRemaining = _selectedInterval; // Reset to selected interval
+          }
         }
       });
     });
@@ -626,8 +639,105 @@ class _HomeScreenState extends State<HomeScreen> {
     _timer?.cancel();
     setState(() {
       _isTimerActive = false;
+      _isTimerPaused = false;
+      _pauseSecondsRemaining = 0;
       _secondsRemaining = _selectedInterval; // Reset to selected interval
       _resetSessionStats(); // Reset all session stats when stopping timer
+    });
+  }
+
+  void _showPauseDialog() {
+    final pauseOptions = {
+      '5 minutes': 300, // Temporary testing option
+      '15 minutes': 900,
+      '1 hour': 3600,
+      '2 hours': 7200,
+    };
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Pause Timer',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Select pause duration:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...pauseOptions.entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _pauseTimer(entry.value);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          entry.key,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _pauseTimer(int pauseSeconds) {
+    setState(() {
+      _isTimerPaused = true;
+      _pauseSecondsRemaining = pauseSeconds;
+    });
+  }
+
+  void _resumeTimer() {
+    setState(() {
+      _isTimerPaused = false;
+      _pauseSecondsRemaining = 0;
     });
   }
 
@@ -1175,23 +1285,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: [
                                       Text(
                                         _isTimerActive
-                                            ? _formatTime(_secondsRemaining)
+                                            ? (_isTimerPaused 
+                                                ? _formatTime(_pauseSecondsRemaining)
+                                                : _formatTime(_secondsRemaining))
                                             : '--:--',
                                         style: TextStyle(
                                           fontSize: 42,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.blue[600],
+                                          color: _isTimerPaused ? Colors.orange[600] : Colors.blue[600],
                                           fontFamily: 'monospace',
                                         ),
                                       ),
                                       SizedBox(height: 10),
                                       Text(
                                         _isTimerActive
-                                            ? '${((1 - (_secondsRemaining / _selectedInterval)) * 100).toInt()}% complete'
+                                            ? (_isTimerPaused
+                                                ? 'Timer Paused'
+                                                : '${((1 - (_secondsRemaining / _selectedInterval)) * 100).toInt()}% complete')
                                             : 'Ready to start',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey[600],
+                                          color: _isTimerPaused ? Colors.orange[600] : Colors.grey[600],
                                         ),
                                       ),
                                     ],
@@ -1234,11 +1348,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: _isTimerActive ? stopTimer : null,
-                        icon: Icon(Icons.stop),
-                        label: Text('Stop Timer'),
+                        onPressed: _isTimerActive
+                            ? (_isTimerPaused ? _resumeTimer : _showPauseDialog)
+                            : null,
+                        icon: Icon(_isTimerPaused ? Icons.play_arrow : Icons.pause),
+                        label: Text(_isTimerPaused ? 'Resume Timer' : 'Pause Timer'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: _isTimerPaused ? Colors.green : Colors.orange,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(
                               horizontal: 20, vertical: 15),
