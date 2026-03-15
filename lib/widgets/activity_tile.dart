@@ -59,7 +59,7 @@ class _ActivityTileState extends State<ActivityTile> {
                   repeatCount: widget.activity.count,
                   activityName: widget.activity.name,
                   onTimeTracked: widget.onTimeTracked,
-                  onComplete: (completedCount) {
+                  onComplete: (completedCount, {required bool isQuit}) {
                     // Use the video complete callback if provided, otherwise fall back to count change
                     if (widget.onVideoComplete != null) {
                       widget.onVideoComplete!(completedCount);

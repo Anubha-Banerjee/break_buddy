@@ -8,7 +8,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 class VideoPlayerDialog extends StatefulWidget {
   final String videoPath;
   final int durationInSeconds;
-  final Function(int completedCount) onComplete;
+  final Function(int completedCount, {required bool isQuit}) onComplete;
   final String activityName;
   final int repeatCount;
   final bool isLastActivity;
@@ -231,12 +231,12 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     super.dispose();
   }
 
-  void _completeWithTime(int count) {
+  void _completeWithTime(int count, {bool isQuit = false}) {
     final timeSpent = DateTime.now().difference(_startTime).inSeconds;
     final actualCount =
         count.abs(); // Get absolute value (handles negative quit signal)
     print(
-        '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%');
+        '[VIDEO TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%, isQuit: $isQuit');
 
     // Only track activities that:
     // 1. Lasted 2 seconds or more
@@ -257,8 +257,9 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             '[VIDEO TIME] Not tracking activity: ${widget.activityName} (progress: ${_maxProgressPercentage.toStringAsFixed(1)}% < 50% threshold)');
       }
     }
-    widget.onComplete(count);
+    widget.onComplete(count, isQuit: isQuit);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -394,7 +395,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                       ),
                       ElevatedButton.icon(
                         onPressed: () {
-                          _completeWithTime(-_completedReps);
+                          _completeWithTime(_completedReps, isQuit: true);
                         },
                         icon: const Icon(Icons.close),
                         label: const Text('Quit'),
@@ -507,9 +508,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                           ),
                           ElevatedButton.icon(
                             onPressed: () {
-                              // When quitting, pass negative completed rep count to signal quit
-                              // negative = quit, positive = normal completion
-                              _completeWithTime(-_completedReps);
+                              _completeWithTime(_completedReps, isQuit: true);
                             },
                             icon: const Icon(Icons.close),
                             label: const Text('Quit'),

@@ -16,17 +16,40 @@ class SettingsDialog extends StatefulWidget {
 
 class _SettingsDialogState extends State<SettingsDialog> {
   late int _selectedDuration;
+  late TextEditingController _customDurationController;
+  bool _isCustom = false;
 
   @override
   void initState() {
     super.initState();
     _selectedDuration = widget.defaultDuration;
+    _customDurationController = TextEditingController();
+    
+    // Check if the current duration matches any preset option
+    final timerOptions = {
+      '30 minutes': 1800,
+      '40 minutes': 2400,
+      '45 minutes': 2700,
+      '60 minutes': 3600,
+    };
+    
+    _isCustom = !timerOptions.containsValue(_selectedDuration);
+    if (_isCustom) {
+      _customDurationController.text = (_selectedDuration ~/ 60).toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _customDurationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final timerOptions = {
       '30 minutes': 1800,
+      '40 minutes': 2400,
       '45 minutes': 2700,
       '60 minutes': 3600,
     };
@@ -72,23 +95,85 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
             // Radio buttons for timer duration
             Column(
-              children: timerOptions.entries.map((entry) {
-                return RadioListTile<int>(
-                  title: Text(
-                    entry.key,
-                    style: const TextStyle(fontSize: 16),
+              children: [
+                ...timerOptions.entries.map((entry) {
+                  return RadioListTile<int>(
+                    title: Text(
+                      entry.key,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    value: entry.value,
+                    groupValue: _isCustom ? -1 : _selectedDuration,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedDuration = value!;
+                        _isCustom = false;
+                        _customDurationController.clear();
+                      });
+                    },
+                    activeColor: Colors.blue[600],
+                  );
+                }).toList(),
+                // Custom option
+                RadioListTile<bool>(
+                  title: const Text(
+                    'Custom',
+                    style: TextStyle(fontSize: 16),
                   ),
-                  value: entry.value,
-                  groupValue: _selectedDuration,
+                  value: true,
+                  groupValue: _isCustom,
                   onChanged: (value) {
                     setState(() {
-                      _selectedDuration = value!;
+                      _isCustom = value ?? false;
+                      if (_isCustom) {
+                        _customDurationController.text =
+                            (_selectedDuration ~/ 60).toString();
+                      }
                     });
                   },
                   activeColor: Colors.blue[600],
-                );
-              }).toList(),
+                ),
+              ],
             ),
+            
+            // Custom duration input
+            if (_isCustom)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _customDurationController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'Enter minutes',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          final minutes = int.tryParse(value);
+                          if (minutes != null && minutes > 0) {
+                            setState(() {
+                              _selectedDuration = minutes * 60;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'minutes',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
 
             const Divider(height: 24),
 

@@ -27,61 +27,73 @@ Future<void> main() async {
   // Initialize media_kit
   MediaKit.ensureInitialized();
 
-  // Start video server
-  try {
-    // Get the current working directory (usually the project root when running from IDE)
-    String projectRoot = Directory.current.path;
+  // Start video server (works on web too since we're using the shelf server)
+  if (!kIsWeb) {
+    try {
+      // Get the current working directory (usually the project root when running from IDE)
+      String projectRoot = Directory.current.path;
 
-    String assetsPath;
-    if (Platform.isWindows) {
-      // Or more generally, for release builds
-      // Get the directory of the executable
-      String exePath = Platform.resolvedExecutable;
-      String exeDir = p.dirname(exePath);
+      String assetsPath;
+      if (Platform.isWindows) {
+        // Or more generally, for release builds
+        // Get the directory of the executable
+        String exePath = Platform.resolvedExecutable;
+        String exeDir = p.dirname(exePath);
 
-      // Construct the path to where Flutter bundles assets in a release build
-      // Your video_config.json and video files are expected to be inside
-      // 'data\flutter_assets\assets\' if your original structure was 'project_root/assets/'
-      // and your VideoServer is set up to serve from a base path given to it.
-      //
-      // If your VideoServer expects to be given the '.../Release/data/flutter_assets'
-      // and then it looks for 'assets/videos' within that, then:
-      // assetsPath = p.join(exeDir, 'data', 'flutter_assets');
-      //
-      // If your VideoServer expects to be given the direct path to '.../Release/data/flutter_assets/assets'
-      // (meaning your video_config.json might list paths like 'videos/your_video.mp4')
-      // then:
-      assetsPath = p.join(exeDir, 'data', 'flutter_assets', 'assets');
+        // Construct the path to where Flutter bundles assets in a release build
+        // Your video_config.json and video files are expected to be inside
+        // 'data\\flutter_assets\\assets\\' if your original structure was 'project_root/assets/'
+        // and your VideoServer is set up to serve from a base path given to it.
+        //
+        // If your VideoServer expects to be given the '.../Release/data/flutter_assets'
+        // and then it looks for 'assets/videos' within that, then:
+        // assetsPath = p.join(exeDir, 'data', 'flutter_assets');
+        //
+        // If your VideoServer expects to be given the direct path to '.../Release/data/flutter_assets/assets'
+        // (meaning your video_config.json might list paths like 'videos/your_video.mp4')
+        // then:
+        assetsPath = p.join(exeDir, 'data', 'flutter_assets', 'assets');
 
-      // It's crucial to understand what base path your VideoServer is designed to work with
-      // and what the paths in your video_config.json mean relative to that base path.
+        // It's crucial to understand what base path your VideoServer is designed to work with
+        // and what the paths in your video_config.json mean relative to that base path.
 
-      print("Release mode: Serving assets from: $assetsPath");
-    } else {
-      // Debug mode or other platforms - assuming 'assets' is relative to project root
-      if (Platform.isAndroid) {
-        // For Android debug mode, use the assets directory
-        assetsPath = 'assets';
+        print("Release mode: Serving assets from: $assetsPath");
       } else {
-        // For other platforms in debug mode
-        assetsPath = 'assets';
+        // Debug mode or other platforms - assuming 'assets' is relative to project root
+        if (Platform.isAndroid) {
+          // For Android debug mode, use the assets directory
+          assetsPath = 'assets';
+        } else {
+          // For other platforms in debug mode
+          assetsPath = 'assets';
+        }
+        print("Debug mode: Serving assets from: $assetsPath");
       }
-      print("Debug mode: Serving assets from: $assetsPath");
+
+      print('Attempting to serve assets from: $assetsPath'); // For debugging
+      await videoServer.start(assetsPath);
+
+      //await videoServer.start('D:\\\\AndroidProjects\\\\break_buddy\\\\assets');
+    } catch (e) {
+      print('Failed to start video server: $e');
     }
 
-    print('Attempting to serve assets from: $assetsPath'); // For debugging
-    await videoServer.start(assetsPath);
-
-    //await videoServer.start('D:\\AndroidProjects\\break_buddy\\assets');
-  } catch (e) {
-    print('Failed to start video server: $e');
-  }
-
-  // Initialize video configuration
-  try {
-    await VideoConfig.initialize(videoServer);
-  } catch (e) {
-    print('Failed to initialize video config: $e');
+    // Initialize video configuration
+    try {
+      await VideoConfig.initialize(videoServer);
+    } catch (e) {
+      print('Failed to initialize video config: $e');
+    }
+  } else {
+    print(
+        'Web platform detected - video server unavailable, using direct asset serving');
+    // On web, we don't use the shelf server; videos are served by Flutter's built-in asset server
+    // But we still need to initialize VideoConfig with asset paths
+    try {
+      await VideoConfig.initialize(videoServer);
+    } catch (e) {
+      print('Failed to initialize video config: $e');
+    }
   }
 
   // Initialize window manager only on desktop platforms
@@ -511,6 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Timer interval options (in seconds)
   final Map<String, int> _timerOptions = {
     '30 minutes': 1800,
+    '40 minutes': 2400,
     '45 minutes': 2700,
     '60 minutes': 3600,
   };
@@ -739,7 +752,7 @@ class _HomeScreenState extends State<HomeScreen> {
       int timeSpent = activity.timeSpent ??
           ((VideoConfig.getVideoForTask(activity.id)?.duration ?? 0) *
               activity.count);
-      if (timeSpent < 4) {
+      if (timeSpent < 2) {
         print(
             'Skipping activity: ${activity.name} (time: ${timeSpent}s < 4s threshold)');
         continue;
@@ -914,7 +927,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   0, (sum, stats) => sum + stats.timeSpent);
               setState(() {});
             },
-            onComplete: (int completedCount) {
+            onComplete: (int completedCount, {required bool isQuit}) {
               Navigator.of(context).pop();
             },
           );

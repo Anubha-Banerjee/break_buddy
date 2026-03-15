@@ -452,19 +452,17 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                   print(
                       '[DEBUG] Total time for ${activity.name}: ${activityTimeSpent[activity.id]}s');
                 },
-                onComplete: (int completedCount) async {
+                onComplete: (int completedCount, {required bool isQuit}) async {
                   if (mounted) {
                     Navigator.of(context).pop();
 
-                    // Check if user clicked quit (negative value signals quit)
-                    bool userQuit = completedCount < 0;
-                    int actualCount =
-                        userQuit ? -completedCount : completedCount;
+                    // Check if user clicked quit using the isQuit flag
+                    bool userQuit = isQuit;
+                    int actualCount = completedCount > 0 ? completedCount : 0;
 
                     // Use the actual completed count from the video player
                     // This handles cases where user quits before completing all reps
-                    final actualCompletedCount =
-                        actualCount > 0 ? actualCount : 0;
+                    final actualCompletedCount = actualCount > 0 ? actualCount : 0;
 
                     print(
                         '[DEBUG] onComplete called: completedCount=$completedCount, userQuit=$userQuit, actualCount=$actualCount, actualCompletedCount=$actualCompletedCount');
