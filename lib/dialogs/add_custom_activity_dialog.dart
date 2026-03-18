@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import '../models/custom_activity.dart';
+import 'dart:io';import 'package:file_picker/file_picker.dart';import '../models/custom_activity.dart';
 import '../services/custom_activity_service.dart';
 
 class AddCustomActivityDialog extends StatefulWidget {
@@ -35,6 +34,27 @@ class _AddCustomActivityDialogState extends State<AddCustomActivityDialog> {
     _nameController.dispose();
     _videoPathController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickVideoFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv', 'wav'],
+        dialogTitle: 'Select Video File',
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _videoPathController.text = result.files.single.path!;
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error picking file: $e';
+      });
+    }
   }
 
   Future<void> _createActivity() async {
@@ -176,9 +196,9 @@ class _AddCustomActivityDialogState extends State<AddCustomActivityDialog> {
               ),
               const SizedBox(height: 20),
 
-              // Video Path Input
+              // Video File Selection
               const Text(
-                'Video File Path',
+                'Video File',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -186,21 +206,88 @@ class _AddCustomActivityDialogState extends State<AddCustomActivityDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _videoPathController,
-                decoration: InputDecoration(
-                  hintText: 'e.g., C:\\Videos\\my_exercise.mp4',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  helperText: 'Enter the full path to your video file',
-                  helperMaxLines: 2,
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                maxLines: 2,
+                child: Column(
+                  children: [
+                    if (_videoPathController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.video_library, color: Colors.blue, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _videoPathController.text.split(Platform.pathSeparator).last,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _videoPathController.clear();
+                                    });
+                                  },
+                                  child: Icon(Icons.clear, color: Colors.red[600], size: 18),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _videoPathController.text,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontFamily: 'monospace',
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _pickVideoFile,
+                                icon: const Icon(Icons.folder_open),
+                                label: const Text('Choose Different File'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.blue[600],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _pickVideoFile,
+                            icon: const Icon(Icons.folder_open),
+                            label: const Text('Browse & Select Video File'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               Container(
