@@ -30,13 +30,18 @@ class ActivityGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sort activities to show sequences first, then regular activities
+    // Sort activities to show custom activities first, then sequences, then regular activities
     final sortedActivities = List<Activity>.from(activities)
       ..sort((a, b) {
-        // Sequences come first
+        // Custom activities come first
+        final aIsCustom = a.id.startsWith('custom_');
+        final bIsCustom = b.id.startsWith('custom_');
+        if (aIsCustom && !bIsCustom) return -1;
+        if (!aIsCustom && bIsCustom) return 1;
+
+        // Then sequences
         final aIsSequence = a.id.startsWith('seq_');
         final bIsSequence = b.id.startsWith('seq_');
-
         if (aIsSequence && !bIsSequence) return -1;
         if (!aIsSequence && bIsSequence) return 1;
 
