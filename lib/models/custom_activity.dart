@@ -31,6 +31,28 @@ class CustomActivity extends Activity {
     );
   }
 
+  @override
+  CustomActivity copyWith({
+    String? id,
+    String? name,
+    IconData? icon,
+    int? count,
+    DateTime? selectionTime,
+    int? timeSpent,
+    bool? countMatters,
+  }) {
+    return CustomActivity(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      videoFilePath: videoFilePath,
+      generatedThumbnailPath: generatedThumbnailPath,
+      icon: icon ?? this.icon,
+    )
+      ..count = count ?? this.count
+      ..selectionTime = selectionTime ?? this.selectionTime
+      ..timeSpent = timeSpent ?? this.timeSpent;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
