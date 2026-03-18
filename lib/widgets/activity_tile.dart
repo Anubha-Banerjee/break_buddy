@@ -119,7 +119,17 @@ class _ActivityTileState extends State<ActivityTile> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 16),
+                    if (widget.activity.count > 0)
+                      Text(
+                        widget.activity.count.toString(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 16),
+                    if (widget.activity.count > 0) const SizedBox(height: 2),
                     Expanded(
                       child: Container(
                         width: 52,
