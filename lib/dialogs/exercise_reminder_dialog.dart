@@ -492,13 +492,12 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                 onTimeTracked: (count, timeSpent) {
                   print(
                       '[DEBUG] Sequence video time tracked: ${activity.name}, count=$count, time=${timeSpent}s');
-                  // Convert seconds to milliseconds for stats calculation
-                  int timeSpentMs = timeSpent * 1000;
+                  // Track time in seconds (same as direct activities)
                   activityTimeSpent[activity.id] =
-                      (activityTimeSpent[activity.id] ?? 0) + timeSpentMs;
+                      (activityTimeSpent[activity.id] ?? 0) + timeSpent;
                   final totalTime = activityTimeSpent[activity.id] ?? 0;
                   print(
-                      '[DEBUG] Total time for ${activity.name}: ${totalTime}ms (${(totalTime / 1000).toStringAsFixed(1)}s)');
+                      '[DEBUG] Total time for ${activity.name}: ${totalTime}s');
                 },
                 onComplete: (int completedCount, {required bool isQuit}) async {
                   if (mounted) {
