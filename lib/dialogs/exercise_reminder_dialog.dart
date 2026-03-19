@@ -176,26 +176,36 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
     }
     
     // Start with predefined activities (excluding custom activities, we'll reload them)
-    var predefinedNonCustom = predefinedActivities
+    activities = predefinedActivities
         .where((a) => a is! CustomActivity)
         .toList();
 
     // Load custom activities from storage
-    List<Activity> customActivities = [];
     if (widget.customActivityService != null) {
-      final loadedCustom = await widget.customActivityService!.loadCustomActivities();
-      print('Loaded ${loadedCustom.length} custom activities');
-      customActivities = loadedCustom.cast<Activity>();
+      final customActivities = await widget.customActivityService!.loadCustomActivities();
+      print('Loaded ${customActivities.length} custom activities');
+      
+      if (customActivities.isNotEmpty) {
+        setState(() {
+          activities.addAll(customActivities.cast<Activity>());
+        });
+      }
     }
 
     // Load saved sequences
-    var sequences = <Activity>[];
     if (widget.sequenceService != null) {
+      // Clear any existing sequences first
+      activities.removeWhere((a) => a.id.startsWith('seq_'));
+
+      // Load fresh sequences from storage
       final loadedSequences = await widget.sequenceService!.loadSequences();
       print('Loaded ${loadedSequences.length} sequences');
-      
+
+      // Add sequence activities
       if (loadedSequences.isNotEmpty) {
-        sequences = loadedSequences.map((seq) {
+        final sequenceActivities = loadedSequences.map((seq) {
+          print('Adding sequence: ${seq.name} (${seq.id})');
+          // Get the first activity's icon and thumbnail from the sequence
           final firstActivityIcon = seq.activities.isNotEmpty
               ? seq.activities.first.icon
               : Icons.playlist_play;
@@ -210,14 +220,11 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
             count: 0,
           );
         }).toList();
-      }
-    }
 
-    // Combine with custom activities first, then predefined, then sequences
-    if (mounted) {
-      setState(() {
-        activities = [...customActivities, ...predefinedNonCustom, ...sequences];
-      });
+        setState(() {
+          activities.addAll(sequenceActivities);
+        });
+      }
     }
   }
 
