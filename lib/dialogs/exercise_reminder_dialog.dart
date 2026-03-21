@@ -8,6 +8,7 @@ import '../widgets/video_player_dialog.dart';
 import '../data/activities.dart';
 import '../services/activity_sequence_service.dart';
 import '../services/custom_activity_service.dart';
+import '../services/activity_order_service.dart';
 import '../utils/sequence_expander.dart';
 
 class ExerciseReminderDialog extends StatefulWidget {
@@ -225,6 +226,37 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
           activities.addAll(sequenceActivities);
         });
       }
+    }
+
+    // Load and apply saved activity order
+    final orderService = ActivityOrderService();
+    final savedOrder = await orderService.loadActivityOrder();
+    
+    if (savedOrder != null && savedOrder.isNotEmpty) {
+      print('[REMINDER] Applying saved activity order');
+      final reorderedActivities = <Activity>[];
+      
+      // Add activities in the saved order
+      for (final id in savedOrder) {
+        final activity = activities.firstWhere(
+          (a) => a.id == id,
+          orElse: () => Activity(id: '', name: '', icon: Icons.help),
+        );
+        if (activity.id.isNotEmpty) {
+          reorderedActivities.add(activity);
+        }
+      }
+      
+      // Add any new activities that weren't in the saved order
+      for (final activity in activities) {
+        if (!reorderedActivities.any((a) => a.id == activity.id)) {
+          reorderedActivities.add(activity);
+        }
+      }
+      
+      setState(() {
+        activities = reorderedActivities;
+      });
     }
   }
 
@@ -1000,6 +1032,12 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       );
                     },
                   );
+                },
+                onActivityOrderChanged: (newOrder) async {
+                  print('[Dialog] Activity order changed: $newOrder');
+                  // Save the new order
+                  final orderService = ActivityOrderService();
+                  await orderService.saveActivityOrder(newOrder);
                 },
               ),
             ),
