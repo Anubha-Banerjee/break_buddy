@@ -8,6 +8,7 @@ class SequenceTile extends StatefulWidget {
   final VoidCallback onEdit;
   final IconData? firstActivityIcon;
   final String? firstActivityThumbnail;
+  final String? firstActivityName; // Display activity name instead of icon for custom activities
 
   const SequenceTile({
     super.key,
@@ -17,6 +18,7 @@ class SequenceTile extends StatefulWidget {
     required this.onEdit,
     this.firstActivityIcon,
     this.firstActivityThumbnail,
+    this.firstActivityName,
   });
 
   @override
@@ -140,7 +142,7 @@ class _SequenceTileState extends State<SequenceTile> {
                           ),
                         ),
                         // First activity thumbnail or icon with black outline
-                        if (widget.firstActivityThumbnail != null)
+                        if (widget.firstActivityName == null && widget.firstActivityThumbnail != null)
                           Container(
                             width: 58,
                             height: 58,
@@ -172,12 +174,27 @@ class _SequenceTileState extends State<SequenceTile> {
                               color: Colors.blue[50],
                             ),
                             child: Center(
-                              child: Icon(
-                                widget.firstActivityIcon ??
-                                    Icons.fitness_center,
-                                size: 32,
-                                color: Colors.blue,
-                              ),
+                              child: widget.firstActivityName != null
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(4),
+                                      child: Text(
+                                        widget.firstActivityName!,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    )
+                                  : Icon(
+                                      widget.firstActivityIcon ??
+                                          Icons.fitness_center,
+                                      size: 32,
+                                      color: Colors.blue,
+                                    ),
                             ),
                           ),
                       ],

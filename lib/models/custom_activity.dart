@@ -40,6 +40,7 @@ class CustomActivity extends Activity {
     DateTime? selectionTime,
     int? timeSpent,
     bool? countMatters,
+    String? firstActivityName,
   }) {
     return CustomActivity(
       id: id ?? this.id,

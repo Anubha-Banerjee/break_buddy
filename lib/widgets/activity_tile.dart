@@ -154,11 +154,28 @@ class _ActivityTileState extends State<ActivityTile> {
                                 (VideoConfig.getVideoForTask(widget.activity.id)
                                         ?.thumbnailPath ==
                                     null)
-                            ? Icon(
-                                widget.activity.icon,
-                                size: 24,
-                                color: Colors.blue,
-                              )
+                            ? (widget.activity is CustomActivity)
+                                ? Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4),
+                                      child: Text(
+                                        widget.activity.name,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                : Icon(
+                                    widget.activity.icon,
+                                    size: 24,
+                                    color: Colors.blue,
+                                  )
                             : null,
                       ),
                     ),

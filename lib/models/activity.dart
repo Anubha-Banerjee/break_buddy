@@ -11,6 +11,7 @@ class Activity {
   int? timeSpent; // Track actual time spent (in seconds) for direct video plays
   final bool
       countMatters; // Whether the count matters for this activity (false for activities like walking)
+  final String? firstActivityName; // For sequences: the name of the first activity if it's custom
 
   Activity({
     required this.id,
@@ -22,6 +23,7 @@ class Activity {
     this.selectionTime,
     this.timeSpent,
     this.countMatters = true,
+    this.firstActivityName,
   });
 
   Activity copyWith({
@@ -32,6 +34,7 @@ class Activity {
     DateTime? selectionTime,
     int? timeSpent,
     bool? countMatters,
+    String? firstActivityName,
   }) {
     return Activity(
       id: id ?? this.id,
@@ -43,6 +46,7 @@ class Activity {
       selectionTime: selectionTime ?? this.selectionTime,
       timeSpent: timeSpent ?? this.timeSpent,
       countMatters: countMatters ?? this.countMatters,
+      firstActivityName: firstActivityName ?? this.firstActivityName,
     );
   }
 }

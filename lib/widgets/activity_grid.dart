@@ -60,6 +60,7 @@ class ActivityGrid extends StatelessWidget {
             sequence: activity,
             firstActivityIcon: activity.icon,
             firstActivityThumbnail: activity.thumbnailPath,
+            firstActivityName: activity.firstActivityName,
             onPlay: () => onPlaySequence(activity),
             onDelete: () => onDeleteSequence(activity),
             onEdit: () => onEditSequence(activity),

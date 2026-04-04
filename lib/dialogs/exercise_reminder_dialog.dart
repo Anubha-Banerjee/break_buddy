@@ -8,7 +8,6 @@ import '../widgets/video_player_dialog.dart';
 import '../data/activities.dart';
 import '../services/activity_sequence_service.dart';
 import '../services/custom_activity_service.dart';
-import '../services/activity_order_service.dart';
 import '../utils/sequence_expander.dart';
 
 class ExerciseReminderDialog extends StatefulWidget {
@@ -129,12 +128,18 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                   final firstActivityThumbnail = sequence.activities.isNotEmpty
                       ? sequence.activities.first.thumbnailPath
                       : null;
+                  // Show the sequence name if the first activity is a custom activity
+                  final firstActivityName = sequence.activities.isNotEmpty &&
+                          sequence.activities.first.id.startsWith('custom_')
+                      ? sequence.name
+                      : null;
 
                   activities.add(Activity(
                     id: 'seq_${sequence.id}',
                     name: sequence.name,
                     icon: firstActivityIcon,
                     thumbnailPath: firstActivityThumbnail,
+                    firstActivityName: firstActivityName,
                     count: 0,
                   ));
                 });
@@ -213,11 +218,17 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
           final firstActivityThumbnail = seq.activities.isNotEmpty
               ? seq.activities.first.thumbnailPath
               : null;
+          // Show the sequence name if the first activity is a custom activity
+          final firstActivityName = seq.activities.isNotEmpty &&
+                  seq.activities.first.id.startsWith('custom_')
+              ? seq.name
+              : null;
           return Activity(
             id: 'seq_${seq.id}',
             name: seq.name,
             icon: firstActivityIcon,
             thumbnailPath: firstActivityThumbnail,
+            firstActivityName: firstActivityName,
             count: 0,
           );
         }).toList();
@@ -229,35 +240,35 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
     }
 
     // Load and apply saved activity order
-    final orderService = ActivityOrderService();
-    final savedOrder = await orderService.loadActivityOrder();
+    //final orderService = ActivityOrderService();
+    //final savedOrder = await orderService.loadActivityOrder();
     
-    if (savedOrder != null && savedOrder.isNotEmpty) {
-      print('[REMINDER] Applying saved activity order');
-      final reorderedActivities = <Activity>[];
-      
-      // Add activities in the saved order
-      for (final id in savedOrder) {
-        final activity = activities.firstWhere(
-          (a) => a.id == id,
-          orElse: () => Activity(id: '', name: '', icon: Icons.help),
-        );
-        if (activity.id.isNotEmpty) {
-          reorderedActivities.add(activity);
-        }
-      }
-      
-      // Add any new activities that weren't in the saved order
-      for (final activity in activities) {
-        if (!reorderedActivities.any((a) => a.id == activity.id)) {
-          reorderedActivities.add(activity);
-        }
-      }
-      
-      setState(() {
-        activities = reorderedActivities;
-      });
-    }
+    //if (savedOrder != null && savedOrder.isNotEmpty) {
+    //  print('[REMINDER] Applying saved activity order');
+    //  final reorderedActivities = <Activity>[];
+    //  
+    //  // Add activities in the saved order
+    //  for (final id in savedOrder) {
+    //    final activity = activities.firstWhere(
+    //      (a) => a.id == id,
+    //      orElse: () => Activity(id: '', name: '', icon: Icons.help),
+    //    );
+    //    if (activity.id.isNotEmpty) {
+    //      reorderedActivities.add(activity);
+    //    }
+    //  }
+    //  
+    //  // Add any new activities that weren't in the saved order
+    //  for (final activity in activities) {
+    //    if (!reorderedActivities.any((a) => a.id == activity.id)) {
+    //      reorderedActivities.add(activity);
+    //    }
+    //  }
+    //  
+    //  setState(() {
+    //    activities = reorderedActivities;
+    //  });
+    //}
   }
 
   void _onActivityCountChanged(String id, int newCount) {
@@ -1032,12 +1043,6 @@ class _ExerciseReminderDialogState extends State<ExerciseReminderDialog> {
                       );
                     },
                   );
-                },
-                onActivityOrderChanged: (newOrder) async {
-                  print('[Dialog] Activity order changed: $newOrder');
-                  // Save the new order
-                  final orderService = ActivityOrderService();
-                  await orderService.saveActivityOrder(newOrder);
                 },
               ),
             ),

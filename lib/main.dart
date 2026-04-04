@@ -579,11 +579,17 @@ class _HomeScreenState extends State<HomeScreen> {
         final firstActivityThumbnail = seq.activities.isNotEmpty
             ? seq.activities.first.thumbnailPath
             : null;
+        // Show the sequence name if the first activity is a custom activity
+        final firstActivityName = seq.activities.isNotEmpty &&
+                seq.activities.first.id.startsWith('custom_')
+            ? seq.name
+            : null;
         return Activity(
           id: 'seq_${seq.id}',
           name: seq.name,
           icon: firstActivityIcon,
           thumbnailPath: firstActivityThumbnail,
+          firstActivityName: firstActivityName,
           count: 0,
         );
       }).toList();
