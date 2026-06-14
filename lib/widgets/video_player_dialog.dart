@@ -4,6 +4,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:camera/camera.dart';
+import '../services/pose_detector.dart';
+import '../widgets/pose_overlay.dart';
 
 class VideoPlayerDialog extends StatefulWidget {
   final String videoPath;
@@ -48,6 +51,11 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
   late DateTime _startTime;
   bool _isMaximized = true; // Auto-maximize videos
   double _maxProgressPercentage = 0.0; // Track maximum progress reached
+  
+  // Pose detection variables
+  PoseDetectorService? _poseDetector;
+  bool _poseDetectorInitialized = false;
+  bool _showPoseOverlay = false;
 
   @override
   void initState() {
@@ -60,14 +68,38 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     _showingNextActivityPopup = false;
     _startTime = DateTime.now();
     print(
-        'Initializing video player for ${widget.activityName} with ${widget.repeatCount} repeats');
+      'Initializing video player for ${widget.activityName} with ${widget.repeatCount} repeats',
+    );
     _initializePlayer();
+    _initializePoseDetector();
+  }
+
+  Future<void> _initializePoseDetector() async {
+    try {
+      _poseDetector = PoseDetectorService();
+      await _poseDetector!.initializeCameras();
+      if (mounted) {
+        setState(() {
+          _poseDetectorInitialized = true;
+          _showPoseOverlay = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing pose detector: $e');
+      if (mounted) {
+        setState(() {
+          _poseDetectorInitialized = false;
+          _showPoseOverlay = false;
+        });
+      }
+    }
   }
 
   Future<bool> _initializeVideoController() async {
     try {
       print(
-          'Initializing video player for: ${widget.videoPath} (Attempt ${_initializeAttempts + 1}/$maxAttempts)');
+        'Initializing video player for: ${widget.videoPath} (Attempt ${_initializeAttempts + 1}/$maxAttempts)',
+      );
 
       String videoPath = widget.videoPath;
       if (Platform.isAndroid) {
@@ -96,10 +128,14 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         final lastPositionMs = _lastPosition?.inMilliseconds ?? 0;
         // Use actual video duration if available (from media_kit); fall back to widget duration
         final actualDurationMs = _player.state.duration.inMilliseconds;
-        final durationMs = actualDurationMs > 0 ? actualDurationMs : (widget.durationInSeconds * 1000);
-        
+        final durationMs = actualDurationMs > 0
+            ? actualDurationMs
+            : (widget.durationInSeconds * 1000);
+
         if (actualDurationMs > 0) {
-          print('[VIDEO_DURATION] Actual video duration: ${actualDurationMs}ms (${(actualDurationMs/1000).toStringAsFixed(1)}s)');
+          print(
+            '[VIDEO_DURATION] Actual video duration: ${actualDurationMs}ms (${(actualDurationMs / 1000).toStringAsFixed(1)}s)',
+          );
         }
 
         // Track maximum progress percentage reached
@@ -110,7 +146,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         }
 
         print(
-            'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%');
+          'Position: ${currentPositionMs}ms / ${durationMs}ms, Last: ${lastPositionMs}ms, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%',
+        );
 
         if (!hasReachedEnd && currentPositionMs >= (durationMs - 200)) {
           print('Reached end of video');
@@ -118,7 +155,9 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         }
 
         if (hasReachedEnd && currentPositionMs < 200 && !_videoCompleted) {
-          print('[LOOP_DETECTED] Video restarted from beginning. PlayCount: $_playCount, RepeatCount: ${widget.repeatCount}');
+          print(
+            '[LOOP_DETECTED] Video restarted from beginning. PlayCount: $_playCount, RepeatCount: ${widget.repeatCount}',
+          );
           hasReachedEnd = false;
 
           if (mounted) {
@@ -136,13 +175,15 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               }
             });
             print(
-                '[LOOP_COMPLETED] Incremented play count to $_playCount, completed reps: $_completedReps${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+              '[LOOP_COMPLETED] Incremented play count to $_playCount, completed reps: $_completedReps${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}',
+            );
 
             // Only auto-complete if we have a repeatCount target and reached it
             if (widget.repeatCount > 0 &&
                 unboundedPlayCount > widget.repeatCount) {
               print(
-                  'Target count reached ($_completedReps/${widget.repeatCount}), preparing to end');
+                'Target count reached ($_completedReps/${widget.repeatCount}), preparing to end',
+              );
               await _player.pause();
 
               if (mounted) {
@@ -174,10 +215,12 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         _lastPosition = position;
       });
 
-      _playbackSubscription =
-          _player.stream.completed.listen((completed) async {
+      _playbackSubscription = _player.stream.completed.listen((
+        completed,
+      ) async {
         print(
-            'Completed event received: completed=$completed, playCount=$_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+          'Completed event received: completed=$completed, playCount=$_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}',
+        );
         if (completed &&
             mounted &&
             widget.repeatCount > 0 &&
@@ -191,7 +234,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
       _player.stream.playing.listen((playing) {
         print(
-            'Playback state changed: playing=$playing, count=$_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}');
+          'Playback state changed: playing=$playing, count=$_playCount${widget.repeatCount > 0 ? '/${widget.repeatCount}' : ''}',
+        );
       });
 
       await _player.play();
@@ -206,7 +250,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
       return true;
     } catch (e) {
       print(
-          'Error initializing video player (Attempt ${_initializeAttempts + 1}): $e');
+        'Error initializing video player (Attempt ${_initializeAttempts + 1}): $e',
+      );
       return false;
     }
   }
@@ -234,15 +279,19 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
     _timer?.cancel();
     _playbackSubscription?.cancel();
     _player.dispose();
+    if (_poseDetector != null) {
+      _poseDetector!.dispose();
+    }
     super.dispose();
   }
 
   void _completeWithTime(int count, {bool isQuit = false}) {
     final timeSpent = DateTime.now().difference(_startTime).inSeconds;
-    final actualCount =
-        count.abs(); // Get absolute value (handles negative quit signal)
+    final actualCount = count
+        .abs(); // Get absolute value (handles negative quit signal)
     print(
-        '[COMPLETE_WITH_TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%, isQuit: $isQuit');
+      '[COMPLETE_WITH_TIME] Activity: ${widget.activityName}, Count: $count (actual: $actualCount), Time: ${timeSpent}s, Max Progress: ${_maxProgressPercentage.toStringAsFixed(1)}%, isQuit: $isQuit',
+    );
 
     // Only track activities that:
     // 1. Lasted 2 seconds or more
@@ -252,21 +301,25 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
         timeSpent >= 2 &&
         _maxProgressPercentage >= 50.0) {
       print(
-          '[VIDEO_TIME_TRACKING] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 2s, progress: ${_maxProgressPercentage.toStringAsFixed(1)}% >= 50%)');
+        '[VIDEO_TIME_TRACKING] Tracking activity: ${widget.activityName} (time: ${timeSpent}s >= 2s, progress: ${_maxProgressPercentage.toStringAsFixed(1)}% >= 50%)',
+      );
       widget.onTimeTracked!(actualCount, timeSpent);
     } else if (actualCount > 0) {
       if (timeSpent < 2) {
         print(
-            '[VIDEO_TIME_SKIP] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 2s threshold)');
+          '[VIDEO_TIME_SKIP] Not tracking activity: ${widget.activityName} (time: ${timeSpent}s < 2s threshold)',
+        );
       } else if (_maxProgressPercentage < 50.0) {
         print(
-            '[VIDEO_TIME_SKIP] Not tracking activity: ${widget.activityName} (progress: ${_maxProgressPercentage.toStringAsFixed(1)}% < 50% threshold)');
+          '[VIDEO_TIME_SKIP] Not tracking activity: ${widget.activityName} (progress: ${_maxProgressPercentage.toStringAsFixed(1)}% < 50% threshold)',
+        );
       }
     }
-    print('[CALLING_ON_COMPLETE] Calling onComplete with count=$actualCount, isQuit=$isQuit for ${widget.activityName}');
+    print(
+      '[CALLING_ON_COMPLETE] Calling onComplete with count=$actualCount, isQuit=$isQuit for ${widget.activityName}',
+    );
     widget.onComplete(count, isQuit: isQuit);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -305,7 +358,8 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
               const CircularProgressIndicator(),
               const SizedBox(height: 16),
               Text(
-                  'Loading video... (Attempt ${_initializeAttempts + 1}/$maxAttempts)'),
+                'Loading video... (Attempt ${_initializeAttempts + 1}/$maxAttempts)',
+              ),
             ],
           ),
         ),
@@ -348,35 +402,66 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             body: Column(
               children: [
                 Expanded(
-                  child: Stack(
-                    alignment: Alignment.topRight,
+                  child: Row(
                     children: [
-                      Container(
-                        color: Colors.black,
-                        width: double.infinity,
-                        child: Video(
-                          controller: _videoController,
-                          controls: AdaptiveVideoControls,
-                          fit: BoxFit.contain,
+                      // Exercise video on the left (60%)
+                      Expanded(
+                        flex: 3,
+                        child: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            Container(
+                              color: Colors.black,
+                              width: double.infinity,
+                              child: Video(
+                                controller: _videoController,
+                                controls: AdaptiveVideoControls,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            if (widget.repeatCount > 0)
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      if (widget.repeatCount > 0)
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      // Pose overlay on the right (40%)
+                      if (_poseDetectorInitialized && _showPoseOverlay && _poseDetector != null)
+                        Expanded(
+                          flex: 2,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            color: Colors.black87,
+                            child: Stack(
+                              children: [
+                                CameraPreview(_poseDetector!.cameraController),
+                                // Overlay the pose landmarks
+                                PoseOverlay(
+                                  poseStream: _poseDetector!.poseStream.stream,
+                                  imageSize: Size(
+                                    _poseDetector!.cameraController.value.previewSize?.height ?? 480,
+                                    _poseDetector!.cameraController.value.previewSize?.width ?? 640,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -385,9 +470,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                  ),
+                  decoration: BoxDecoration(color: Colors.black54),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -424,54 +507,86 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Stack(
-                  alignment: Alignment.topRight,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(maxWidth: 480, maxHeight: 360),
-                      child: Container(
-                        color: Colors.black,
-                        child: Video(
-                          controller: _videoController,
-                          controls: AdaptiveVideoControls,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                    if (widget.repeatCount > 0)
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20),
+                    // Exercise video on the left
+                    Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 480,
+                            maxHeight: 360,
                           ),
-                          child: Text(
-                            'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          child: Container(
+                            color: Colors.black,
+                            child: Video(
+                              controller: _videoController,
+                              controls: AdaptiveVideoControls,
+                              fit: BoxFit.contain,
                             ),
                           ),
                         ),
-                      ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: IconButton(
-                        icon: const Icon(Icons.fullscreen,
-                            color: Colors.white, size: 28),
-                        onPressed: () {
-                          setState(() {
-                            _isMaximized = true;
-                          });
-                        },
-                      ),
+                        if (widget.repeatCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Rep ${_playCount}/${widget.repeatCount == 999999 ? '∞' : widget.repeatCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.fullscreen,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isMaximized = true;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
+                    // Pose overlay on the right
+                    if (_poseDetectorInitialized && _showPoseOverlay && _poseDetector != null)
+                      Container(
+                        width: 200,
+                        height: 360,
+                        color: Colors.black87,
+                        child: Stack(
+                          children: [
+                            CameraPreview(_poseDetector!.cameraController),
+                            PoseOverlay(
+                              poseStream: _poseDetector!.poseStream.stream,
+                              imageSize: Size(
+                                _poseDetector!.cameraController.value.previewSize?.height ?? 480,
+                                _poseDetector!.cameraController.value.previewSize?.width ?? 640,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
                 Container(
